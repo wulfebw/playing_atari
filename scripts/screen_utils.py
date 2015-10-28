@@ -30,7 +30,7 @@ class GrayscaleScreenPreprocessor(ScreenPreprocessor):
 		height, width, channels = screen.shape
 		screen = screen.reshape(screen.shape[0], screen.shape[1])
 		screen = screen[height*.5:, width*.05: width*.95]
-		if False:
+		if True:
 			cv2.imshow('screen', screen)
 			cv2.waitKey(1)
 		return screen

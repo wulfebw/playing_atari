@@ -45,6 +45,8 @@ class QLearningAlgorithm(RLAlgorithm):
     # |explorationProb|, take a random action.
     def getAction(self, state):
         self.numIters += 1
+	print "############# checking actions: " + str(len(self.actions))
+	print self.actions
         if random.random() < self.explorationProb: 
             return random.choice(self.actions)
         else:
@@ -59,6 +61,11 @@ class QLearningAlgorithm(RLAlgorithm):
     # You should update the weights using self.getStepSize(); use
     # self.getQ() to compute the current estimate of the parameters.
     def incorporateFeedback(self, state, action, reward, newState):
-        # BEGIN_YOUR_CODE (around 15 lines of code expected)
-        raise NotImplementedError("Implement me")
-        # END_YOUR_CODE
+	stepSize = self.getStepSize()
+    	prediction = self.getQ(state, action)
+    	target = reward
+    	if newState != None:
+    		target += self.discount*max((self.getQ(newState, newAction), newAction) for newAction in self.actions)[0]
+    	for f, v in self.featureExtractor(state, action):
+    		self.weights[f] = self.weights[f] - stepSize*(prediction - target)*v
+

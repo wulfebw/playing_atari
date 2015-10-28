@@ -18,7 +18,7 @@ import learning_agents
 
 def get_agent(gamepath,
 			learning_algorithm=learning_agents.QLearningAlgorithm,
-			feature_extractor=feature_extractors.CoordinateExtractor,
+			feature_extractor=feature_extractors.BoundingBoxExtractor,
 			discount=0.99,
 			explorationProb=.3,
 			load_weights=False):
@@ -151,7 +151,7 @@ def train_agent(gamepath, agent, n_episodes=1000, display_screen=True):
 
 if __name__ == '__main__':
 
-	base_dir = '/Users/wulfe/Dropbox/School/Stanford/autumn_2015/cs221/project/Roms/ROMS'
+	base_dir = 'roms'
 	game = 'breakout.bin'
 	gamepath = os.path.join(base_dir, game)
 	agent = get_agent(gamepath)
