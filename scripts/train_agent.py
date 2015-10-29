@@ -97,6 +97,7 @@ def train_agent(gamepath, agent, n_episodes=1000, display_screen=True):
 	ale.loadROM(gamepath)
 
 	rewards = []
+	best_reward = 0
 	# train the agent
 	for episode in xrange(n_episodes):
 		total_reward = 0
@@ -109,7 +110,6 @@ def train_agent(gamepath, agent, n_episodes=1000, display_screen=True):
 		state = { "screen" : screen, "objects" : None }
 		action = 0
 		counter = 0
-		best_reward = 0
 		reward = 0
 		# each episode consists of a game
 		while not ale.game_over():

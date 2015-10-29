@@ -54,3 +54,6 @@ docs/_build/
 
 # mac
 .DS_Store
+
+# binaries
+*.bin
