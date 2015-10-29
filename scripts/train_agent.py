@@ -106,6 +106,7 @@ def train_agent(gamepath, agent, n_episodes=1000, display_screen=True):
 
 		# let's just say the start screen is all zeros and our first action is 0
 		screen = np.zeros((preprocessor.dim, preprocessor.dim, preprocessor.channels))
+		state = { "screen" : screen, "objects" : None }
 		action = 0
 		counter = 0
 		best_reward = 0
@@ -125,17 +126,18 @@ def train_agent(gamepath, agent, n_episodes=1000, display_screen=True):
 			new_preprocessed_screen = preprocessor.preprocess(new_screen)
 	
 			# 3. request an action from the agent
-			action = agent.getAction(new_preprocessed_screen)
+			new_state = { "screen" : new_preprocessed_screen, "objects" : None } 
+			action = agent.getAction(new_state)
 
 			# 4. perform that action and receive the corresponding reward
 			reward = ale.act(action)
 			total_reward += reward
 
 			# 5. incorporate this feedback into the agent
-			agent.incorporateFeedback(screen, action, reward, new_preprocessed_screen)
+			agent.incorporateFeedback(state, action, reward, new_state)
 
 			# 6. set the new screen to be the old screen
-			screen = new_preprocessed_screen
+			state = new_state
 
 			# 7. if we had a new record, save the feature weights
 			if reward > best_reward and False:

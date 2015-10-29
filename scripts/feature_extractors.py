@@ -13,7 +13,8 @@ class CoordinateExtractor(object):
 		self.prev_ball_coords = [0,0]
 		self.prev_block_coords = [0,0]
 
-	def coordinate_extractor(self, screen, action):
+	def coordinate_extractor(self, state, action):
+		screen = state["screen"]
 		screen = screen.reshape(screen.shape[0], screen.shape[1])
 		top = screen[:.9 * screen.shape[0],:]
 		bot = screen[.9 * screen.shape[0]:,:]
@@ -47,8 +48,6 @@ class BoundingBoxExtractor(object):
                 screenS += "\n"
 		print screenS
 				
-		
-
 	def __init__(self):
 		self.known_objects = {}
 		self.object_id = 0
@@ -94,7 +93,7 @@ class BoundingBoxExtractor(object):
                         if (d[0] >= 0 and not used[d[0]][d[1]]):
                                 to_explore.put(d)
 		print "found object with color: " + str(object_val) + " size: " + str(len(object_coords)) + " min: " + str((min_x, min_y)) + " max: " + str((max_x,max_y))
-		return (((min_x, min_y), (max_x, max_y)), object_coords)
+		return (((min_x, min_y), (max_x, max_y)), tuple(object_coords))
 		
 
 	def get_bounding_boxes(self, screen):
@@ -111,6 +110,7 @@ class BoundingBoxExtractor(object):
 					used[x][y] = True
 				if not used[x][y]:
 					box_and_object = self.extract_object_from_anchor(screen, x, y, used)
+					boxes_and_objects.append(box_and_object)
 		return boxes_and_objects
 
 	def identify_background_color(self, screen):
@@ -130,13 +130,19 @@ class BoundingBoxExtractor(object):
 					max_color = pixel_val
 		return max_color
 
-	def __call__(self, screen, action):
+	def __call__(self, state, action):
+		screen = state["screen"]
 		if len(screen.shape) != 2:
 			print "screen array has dimension: " + str(len(screen.shape))
 			return []
-		else:
-			print screen.shape
-		millis = int(round(time.time() * 1000))
-		boxes = self.get_bounding_boxes(screen)
-		print "Locating objects took: " + str(int(round(time.time() * 1000)) - millis) 
-		return [(0, 0)]
+		if state["objects"] == None:
+			millis = int(round(time.time() * 1000))
+			state["objects"] = self.get_bounding_boxes(screen)
+			print "Locating objects took: " + str(int(round(time.time() * 1000)) - millis) 
+		features = []
+		for box, object_coords in state["objects"]:
+			features.append((object_coords, box[0][0]))
+			features.append((object_coords, box[0][1]))
+			features.append((object_coords, box[1][0]))
+                        features.append((object_coords, box[1][1]))
+		return features
