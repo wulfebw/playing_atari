@@ -1,11 +1,15 @@
 """
 :description: functions for extracting features from screens
 """
+import os
 import sys
 import Queue
 import string
 import time
+import math
 import numpy as np
+import cv2
+import copy
 
 class CoordinateExtractor(object):
 
@@ -92,7 +96,7 @@ class BoundingBoxExtractor(object):
 			d = (pos[0], pos[1] - 1)
                         if (d[0] >= 0 and not used[d[0]][d[1]]):
                                 to_explore.put(d)
-		print "found object with color: " + str(object_val) + " size: " + str(len(object_coords)) + " min: " + str((min_x, min_y)) + " max: " + str((max_x,max_y))
+		#print "found object with color: " + str(object_val) + " size: " + str(len(object_coords)) + " min: " + str((min_x, min_y)) + " max: " + str((max_x,max_y))
 		return (((min_x, min_y), (max_x, max_y)), tuple(object_coords))
 		
 
@@ -103,7 +107,7 @@ class BoundingBoxExtractor(object):
 			print "Found background color: " + str(self.background_color)
 		boxes_and_objects = []
 		#self.print_screen(screen)
-		print "Searching for objects..."
+		#print "Searching for objects..."
 		for x in range(0, screen.shape[0]):
                         for y in range(0, screen.shape[1]):
 				if screen[x][y] == self.background_color:
@@ -133,16 +137,96 @@ class BoundingBoxExtractor(object):
 	def __call__(self, state, action):
 		screen = state["screen"]
 		if len(screen.shape) != 2:
-			print "screen array has dimension: " + str(len(screen.shape))
+			#print "screen array has dimension: " + str(len(screen.shape))
 			return []
 		if state["objects"] == None:
 			millis = int(round(time.time() * 1000))
 			state["objects"] = self.get_bounding_boxes(screen)
-			print "Locating objects took: " + str(int(round(time.time() * 1000)) - millis) 
+			#print "Locating objects took: " + str(int(round(time.time() * 1000)) - millis) 
 		features = []
 		for box, object_coords in state["objects"]:
+			print object_coords
+			sys.exit(0)
 			features.append((object_coords, box[0][0]))
 			features.append((object_coords, box[0][1]))
 			features.append((object_coords, box[1][0]))
-                        features.append((object_coords, box[1][1]))
+			features.append((object_coords, box[1][1]))
+		features.append(('action', action))
+		for thing in features:
+			print thing
+			print '\n'
+		sys.exit(0)
 		return features
+
+
+def get_center(x,y,w,h):
+	return ((x + w) / 2, (y + h) / 2)
+
+class OpenCVBoundingBox(object):
+	def __init__(self):
+		self.iter = 0
+		self.found_centers = []
+		self.threshold = 10
+
+	""" is this center inside any previous box? """
+	def found_already(self, x, y, w, h):
+		cx, cy = get_center(x,y,w,h)
+		for fcx, fcy in self.found:
+			if math.sqrt((fcx-cx)**2 + (fcy-cy)**2) < self.threshold:
+				return True
+		self.found.append((cx, cy))
+		return False
+
+	def get_bounding_boxes(self, screen):
+		self.iter = self.iter + 1;
+		img = copy.deepcopy(screen)
+		imgray = cv2.cvtColor(img,cv2.COLOR_BGR2GRAY)
+		edges = cv2.Canny(imgray, 20, 100)
+		ret, thresh = cv2.threshold(edges, 127, 255, 0)
+		contours, hierarchy = cv2.findContours(thresh,cv2.RETR_TREE,cv2.CHAIN_APPROX_SIMPLE)
+		contours = [cont for cont in contours if cv2.arcLength(cont, True) > 10]
+
+		approx = []
+		for cnt in contours:
+		    epsilon = 0.00*cv2.arcLength(cnt,True)
+		    approx.append(cv2.approxPolyDP(cnt,epsilon,True))
+
+		boxes = []
+		for idx, cont in enumerate(approx):
+		    x,y,w,h = cv2.boundingRect(cont)
+		    get_center(x,y,w,h)
+		    if not self.found_already(x,y,w,h):
+		    	boxes.append(((x,w),(y,h)))
+		    cv2.rectangle(img, (x,y), (x+w, y+h), (0,255,0))
+		# cv2.imshow('img', img)
+		# print boxes
+		# raw_input()
+		return boxes
+
+	def __call__(self, state, action):
+		screen = state["screen"]
+		if len(screen[0][0]) != 3:
+			return []
+
+		if state["objects"] == None:
+			self.found = []
+			millis = int(round(time.time() * 1000))
+			state["objects"] = self.get_bounding_boxes(screen)
+			#print "Locating objects took: " + str(int(round(time.time() * 1000)) - millis)
+		centers = []
+		for (x,w), (y,h) in state["objects"]:
+			centers.append(get_center(x,w,y,h))
+		centers = sorted(centers, key=lambda x: x[1])
+
+		features = []
+		for idx, (cx, cy) in enumerate(centers):
+			name_x = 'object-{}-x'.format(idx+1)
+			name_y = 'object-{}-y'.format(idx+1)
+			features.append((name_x, cx/100.))
+			features.append((name_y, cy/100.))
+		features.append(('action-{}'.format(action), action))
+		return features
+
+class IdentityFeatureExtractor(object):
+	def __call__(self, state, action):
+		return [(k, v) for k, v in state.iteritems()]

@@ -18,10 +18,10 @@ import learning_agents
 
 def get_agent(gamepath,
 			learning_algorithm=learning_agents.QLearningAlgorithm,
-			feature_extractor=feature_extractors.BoundingBoxExtractor,
-			discount=0.99,
-			explorationProb=.3,
-			load_weights=False):
+			feature_extractor=feature_extractors.OpenCVBoundingBox,
+			discount=0.9,
+			explorationProb=.5,
+			load_weights=True):
 	"""
 	:description: instantiates an agent
 
@@ -44,9 +44,9 @@ def get_agent(gamepath,
 	"""
 	
 	# 1. load the legal actions for this game (don't see a reasonable way around this)
-	ale = ALEInterface()
-	ale.loadROM(gamepath)
-	legal_actions = ale.getLegalActionSet()
+	# ale = ALEInterface()
+	# ale.loadROM(gamepath)
+	legal_actions = np.arange(18)#ale.getLegalActionSet()
 
 	# 2. instantiate and return agent
 	fe = feature_extractor()
@@ -57,12 +57,13 @@ def get_agent(gamepath,
 
 	# 3. load and set weights if we have them
 	if load_weights:
-		agent.weights = file_utils.load_weights()
-		print(agent.weights)
+		weights = file_utils.load_weights()
+		if weights is not None:
+			agent.weights = weights
 
 	return agent
 
-def train_agent(gamepath, agent, n_episodes=1000, display_screen=True):
+def train_agent(gamepath, agent, n_episodes=1000, display_screen=False):
 	"""
 	:description: trains an agent to play a game 
 
@@ -103,7 +104,7 @@ def train_agent(gamepath, agent, n_episodes=1000, display_screen=True):
 		total_reward = 0
 
 		# need a preprocessor with some state
-		preprocessor = screen_utils.GrayscaleScreenPreprocessor()
+		preprocessor = screen_utils.RGBScreenPreprocessor()
 
 		# let's just say the start screen is all zeros and our first action is 0
 		screen = np.zeros((preprocessor.dim, preprocessor.dim, preprocessor.channels))
@@ -113,24 +114,29 @@ def train_agent(gamepath, agent, n_episodes=1000, display_screen=True):
 		reward = 0
 		# each episode consists of a game
 		while not ale.game_over():
-			# # 0. let's skip some frames this is taking too long
-			# if counter % 5 != 0:
-			# 	reward += ale.act(action)
-			# 	counter += 1
-			# 	continue
+			counter += 1
 
 			# 1. retrieve the screen for the current frame, this amounts to the state
-			new_screen = ale.getScreenGrayscale()
+			#new_screen = ale.getScreenGrayscale()
+			new_screen = ale.getScreenRGB()
 
 			# 2. preprocess the screen
 			new_preprocessed_screen = preprocessor.preprocess(new_screen)
 	
 			# 3. request an action from the agent
+
 			new_state = { "screen" : new_preprocessed_screen, "objects" : None } 
 			action = agent.getAction(new_state)
 
 			# 4. perform that action and receive the corresponding reward
 			reward = ale.act(action)
+
+			# restrict reward to {-1, 0, 1}
+			if reward > 0:
+				reward = 1
+			elif reward < 0:
+				reward = -1
+
 			total_reward += reward
 
 			# 5. incorporate this feedback into the agent
@@ -140,9 +146,10 @@ def train_agent(gamepath, agent, n_episodes=1000, display_screen=True):
 			state = new_state
 
 			# 7. if we had a new record, save the feature weights
-			if reward > best_reward and False:
+			if reward > best_reward:
 				best_reward = reward
 				file_utils.save_weights(agent.weights)
+				print("best reward!: {}".format(reward))
 
 		if agent.explorationProb > .1:
 			agent.explorationProb -= .005

@@ -11,5 +11,11 @@ def save_weights(weights):
 
 def load_weights():
 	input_filename = "weights/w.pkl"
-	with open(input_filename, 'rb') as f:
-		return pickle.load(f)
+	weights = None
+	try:
+		with open(input_filename, 'rb') as f:
+			weights = pickle.load(f)
+	except IOError as e:
+		print("weight file {} not found, reinitializing weights".format(input_filename))
+		weights = None
+	return weights
