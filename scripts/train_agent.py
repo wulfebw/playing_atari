@@ -19,7 +19,7 @@ import learning_agents
 def get_agent(gamepath,
 			learning_algorithm=learning_agents.QLearningAlgorithm,
 			feature_extractor=feature_extractors.OpenCVBoundingBox,
-			discount=0.9,
+			discount=0.999,
 			explorationProb=.5,
 			load_weights=True):
 	"""
@@ -46,7 +46,12 @@ def get_agent(gamepath,
 	# 1. load the legal actions for this game (don't see a reasonable way around this)
 	# ale = ALEInterface()
 	# ale.loadROM(gamepath)
-	legal_actions = np.arange(18)#ale.getLegalActionSet()
+	# 3 goes right
+	# 4 goes left
+	# 6 also goes right?
+	# 7 also goes left?
+	# 8 goes right also
+	legal_actions = np.array([1,3,4])#ale.getLegalActionSet()
 
 	# 2. instantiate and return agent
 	fe = feature_extractor()
@@ -112,6 +117,7 @@ def train_agent(gamepath, agent, n_episodes=1000, display_screen=False):
 		action = 0
 		counter = 0
 		reward = 0
+		lives = ale.lives()
 		# each episode consists of a game
 		while not ale.game_over():
 			counter += 1
@@ -125,12 +131,16 @@ def train_agent(gamepath, agent, n_episodes=1000, display_screen=False):
 	
 			# 3. request an action from the agent
 
-			new_state = { "screen" : new_preprocessed_screen, "objects" : None } 
+			new_state = { "screen" : new_preprocessed_screen, "objects" : None , "prev_objects" : state["objects"]} 
+
 			action = agent.getAction(new_state)
 
 			# 4. perform that action and receive the corresponding reward
 			reward = ale.act(action)
-
+			if ale.lives() < lives:
+				lives = ale.lives()
+				reward -= 1
+			
 			# restrict reward to {-1, 0, 1}
 			if reward > 0:
 				reward = 1

@@ -56,7 +56,7 @@ class QLearningAlgorithm(RLAlgorithm):
     # Call this function to get the step size to update the weights.
     def getStepSize(self):
         #return 1.0 / self.numIters
-        return .001
+        return .1
 
     # We will call this function with (s, a, r, s'), which you should use to update |weights|.
     # Note that if s is a terminal state, then s' will be None.  Remember to check for this.
@@ -86,18 +86,18 @@ class QLearningAlgorithm(RLAlgorithm):
             target += self.discount * max((self.getQ(newState, newAction), newAction) for newAction in self.actions)[0]
 
         for f, v in self.featureExtractor(state, action):
-            # print("feature: {}\textracted value: {}".format(f,v))
+            #print("feature: {}\textracted value: {}".format(f,v))
             self.weights[f] = self.weights[f] - stepSize*(prediction - target)*v
             assert(self.weights[f] < 1000000)
 
 
-        # print('prediction: {}'.format(prediction))
-        # print('target: {}'.format(target))
-        # print('state["objects"]: {}'.format(state["objects"]))
-        # print('action: {}'.format(action))
-        # print('reward: {}'.format(reward))
-        # print('newState["objects"]: {}'.format(newState["objects"]))
-        # for k, v in self.weights.iteritems():
-        #     print('feature: {}\t weight: {}'.format(k,v))
-        # print '\n' * 5
+        print('prediction: {}'.format(prediction))
+        print('target: {}'.format(target))
+        print('state["objects"]: {}'.format(state["objects"]))
+        print('action: {}'.format(action))
+        print('reward: {}'.format(reward))
+        print('newState["objects"]: {}'.format(newState["objects"]))
+        for k, v in self.weights.iteritems():
+            print('feature: {}\t weight: {}'.format(k,v))
+        print '\n' * 5
 

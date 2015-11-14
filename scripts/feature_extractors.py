@@ -163,6 +163,13 @@ def get_center(x,y,w,h):
 	return ((x + w) / 2, (y + h) / 2)
 
 class OpenCVBoundingBox(object):
+	"""
+	TODO:
+	1. these features need to be cross features
+		e.g., (((ball-x:5),(paddle-x:10), (action-left:1)), 1)
+	2. need to incorporate action into all these cross features
+	3. need to incorporate past position with current position 
+	"""
 	def __init__(self):
 		self.iter = 0
 		self.found_centers = []
@@ -218,13 +225,25 @@ class OpenCVBoundingBox(object):
 			centers.append(get_center(x,w,y,h))
 		centers = sorted(centers, key=lambda x: x[1])
 
+		prev_centers = []
+		if state["prev_objects"] is not None:
+			for (x,w), (y,h) in state["prev_objects"]:
+				prev_centers.append(get_center(x,w,y,h))
+		prev_centers = sorted(centers, key=lambda x: x[1])
+
 		features = []
 		for idx, (cx, cy) in enumerate(centers):
-			name_x = 'object-{}-x'.format(idx+1)
-			name_y = 'object-{}-y'.format(idx+1)
-			features.append((name_x, cx/100.))
-			features.append((name_y, cy/100.))
-		features.append(('action-{}'.format(action), action))
+			name_x = 'object-{}-x-{}'.format(idx, cx)
+			name_y = 'object-{}-y-{}'.format(idx, cy)
+			features.append((name_x, 1))
+			features.append((name_y, 1))
+
+		for idx, (cx, cy) in enumerate(prev_centers):
+			name_x = 'prev_object-{}-x-{}'.format(idx, cx)
+			name_y = 'prev_object-{}-y-{}'.format(idx, cy)
+			features.append((name_x, 1))
+			features.append((name_y, 1))
+		features.append(('action', action))
 		return features
 
 class IdentityFeatureExtractor(object):
