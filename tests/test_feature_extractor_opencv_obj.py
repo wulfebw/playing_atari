@@ -34,17 +34,17 @@ class TestFeatureExtractorOpenCVObjects(unittest.TestCase):
 
 	""" call tests """
 
-	def test_call_multiple_times(self):
+	def test_call_multiple_times_for_objects(self):
 		filepath_prev = os.path.join(DATA_DIR, 'opencv_fe_test_1_img.jpg')
 		screen_prev = cv2.imread(filepath_prev)
 		filepath_cur = os.path.join(DATA_DIR, 'opencv_fe_test_2_img.jpg')
 		screen_cur = cv2.imread(filepath_cur)
 
 		fe = feature_extractors.OpenCVBoundingBoxExtractor()
-		state = {"screen": screen_prev, "objects": None, "prev_objects": None}
+		state = {"screen": screen_prev, "objects": None, "prev_objects": None, "prev_action": 0}
 		action = 1
 		fe(state, action)
-		state = {"screen": screen_cur, "objects": None, "prev_objects": state["objects"]}
+		state = {"screen": screen_cur, "objects": None, "prev_objects": state["objects"], "prev_action": 0}
 		action = 1
 		fe(state, action)
 
@@ -55,6 +55,25 @@ class TestFeatureExtractorOpenCVObjects(unittest.TestCase):
 		actual_prev_objects = state["prev_objects"]
 		expected_prev_objects = [((107, 21), (109, 6)), ((128, 3), (15, 5))]
 		self.assertEquals(actual_prev_objects, expected_prev_objects)
+
+	def test_call_multiple_times_for_features(self):
+		filepath_prev = os.path.join(DATA_DIR, 'opencv_fe_test_1_img.jpg')
+		screen_prev = cv2.imread(filepath_prev)
+		filepath_cur = os.path.join(DATA_DIR, 'opencv_fe_test_2_img.jpg')
+		screen_cur = cv2.imread(filepath_cur)
+
+		fe = feature_extractors.OpenCVBoundingBoxExtractor()
+		state = {"screen": screen_prev, "objects": None, "prev_objects": None, "prev_action": 0}
+		action = 1
+		fe(state, action)
+		state = {"screen": screen_cur, "objects": None, "prev_objects": state["objects"], "prev_action": 0}
+		action = 2
+		actual_features	= None
+		expected_features = None
+		self.assertEquals(actual_features, expected_features)
+
+
+
 
 
 

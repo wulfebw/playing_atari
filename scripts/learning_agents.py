@@ -34,12 +34,15 @@ class QLearningAlgorithm(RLAlgorithm):
         self.weights = collections.Counter()
         self.numIters = 1
         self.stepSize = stepSize
+        self.target_weights = self.weights
 
     # Return the Q function associated with the weights and features
-    def getQ(self, state, action):
+    def getQ(self, state, action, weights=None):
+        if weights is None:
+            weights = self.weights
         score = 0
         for f, v in self.featureExtractor(state, action):
-            score += self.weights[f] * v
+            score += weights[f] * v
         return score
 
     # This algorithm will produce an action given a state.
@@ -47,6 +50,8 @@ class QLearningAlgorithm(RLAlgorithm):
     # |explorationProb|, take a random action.
     def getAction(self, state):
         self.numIters += 1
+        if self.numIters % 20 == 0:
+            self.target_weights = self.weights
 	#print "############# checking actions: " + str(len(self.actions))
         if random.random() < self.explorationProb: 
             return random.choice(self.actions)
@@ -84,12 +89,20 @@ class QLearningAlgorithm(RLAlgorithm):
         prediction = self.getQ(state, action)        
         target = reward
         if newState != None:
-            target += self.discount * max((self.getQ(newState, newAction), newAction) for newAction in self.actions)[0]
+            target += self.discount * max((self.getQ(newState, newAction, self.target_weights), newAction) for newAction in self.actions)[0]
 
+        # "gradient clipping"
+        max_gradient = 1
+        update = stepSize*(prediction - target)
+        if update > max_gradient:
+            update = max_gradient
+        elif update < -max_gradient:
+            update = -max_gradient
         for f, v in self.featureExtractor(state, action):
             #print("feature: {}\textracted value: {}".format(f,v))
-            self.weights[f] = self.weights[f] - stepSize*(prediction - target)*v
-            assert(self.weights[f] < 1000000)
+            # self.weights[f] = self.weights[f] - stepSize*(prediction - target)*v
+            self.weights[f] = self.weights[f] - update*v
+            assert(self.weights[f] < 10000)
 
 
         # print('prediction: {}'.format(prediction))

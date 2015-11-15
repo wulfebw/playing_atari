@@ -10,6 +10,8 @@ import math
 import numpy as np
 import cv2
 import copy
+import operator
+import itertools
 
 class CoordinateExtractor(object):
 
@@ -204,10 +206,8 @@ class OpenCVBoundingBoxExtractor(object):
 		    get_center(x,y,w,h)
 		    if not self.found_already(x,y,w,h):
 		    	boxes.append(((x,w),(y,h)))
-		    cv2.rectangle(img, (x,y), (x+w, y+h), (0,255,0))
-		# cv2.imshow('img', img)
-		# print boxes
-		# raw_input()
+		#     cv2.rectangle(img, (x,y), (x+w, y+h), (0,255,0))
+		# cv2.imshow('img_w_boxes', img)
 		return boxes
 
 	def __call__(self, state, action):
@@ -218,7 +218,7 @@ class OpenCVBoundingBoxExtractor(object):
 		if state["objects"] == None:
 			self.found_centers = []
 			state["objects"] = self.get_bounding_boxes(screen)
-			
+
 		centers = []
 		for (x,w), (y,h) in state["objects"]:
 			centers.append(get_center(x,w,y,h))
@@ -228,21 +228,60 @@ class OpenCVBoundingBoxExtractor(object):
 		if state["prev_objects"] is not None:
 			for (x,w), (y,h) in state["prev_objects"]:
 				prev_centers.append(get_center(x,w,y,h))
-		prev_centers = sorted(centers, key=lambda x: x[1])
+		prev_centers = sorted(prev_centers, key=lambda x: x[1])
 
-		features = []
+		derivative_pos = []
+		if len(centers) == len(prev_centers):
+			for c, pc in zip(centers, prev_centers):
+				derivative_pos.append(tuple(map(operator.sub, c, pc)))
+
+		pos_names = []
+		# base position feature
 		for idx, (cx, cy) in enumerate(centers):
-			name_x = 'object-{}-x-{}'.format(idx, cx)
-			name_y = 'object-{}-y-{}'.format(idx, cy)
-			features.append((name_x, 1))
-			features.append((name_y, 1))
+			name_x = 'object-{}-x-{}'.format(idx, round(cx, -1))
+			name_y = 'object-{}-y-{}'.format(idx, round(cy, -1))
+			pos_names.append(name_x)
+			pos_names.append(name_y)
 
-		for idx, (cx, cy) in enumerate(prev_centers):
-			name_x = 'prev_object-{}-x-{}'.format(idx, cx)
-			name_y = 'prev_object-{}-y-{}'.format(idx, cy)
-			features.append((name_x, 1))
-			features.append((name_y, 1))
-		features.append(('action', action))
+		# derivatives
+		deriv_names = []
+		for idx, (dx, dy) in enumerate(derivative_pos):
+			dx = 1 if dx > 0 else -1
+			name_x = 'object-{}-dx-{}'.format(idx, dx)
+			dy = 1 if dy > 0 else -1
+			name_y = 'object-{}-dy-{}'.format(idx, dy)
+			deriv_names.append(name_x)
+			deriv_names.append(name_y)
+
+		# differences
+		diff_names = []
+		for (cx0, cy0), (cx1, cy1) in zip(centers, centers[1:]):
+			x = 1 if cx0 > cx1 else -1
+			diff_x = 'diff-x-pos-{}'.format(x)
+			y = 1 if cy0 > cy1 else -1
+			diff_y = 'diff-y-pos-{}'.format(y)
+			diff_names.append((diff_x, 1))
+			diff_names.append((diff_y, 1))
+
+		#feature_names += list(itertools.combinations(feature_names, 2))
+		features = []
+		prev_action_name = 'prev-action-{}'.format(state["prev_action"])
+		action_name = 'action-{}'.format(action)
+
+		features.append((prev_action_name, 1))
+		features.append((action_name, 1))
+		for pos in pos_names:
+			features.append((pos, 1))
+			features.append(((pos, prev_action_name), 1))
+			for deriv in deriv_names:
+				features.append((deriv, 1))
+				features.append(((deriv, prev_action_name), 1))
+				features.append(((deriv, prev_action_name), 1))
+				for diff in diff_names:
+					features.append((diff, 1))
+					features.append(((diff, prev_action_name), 1))
+					features.append(((pos, deriv, diff, action_name), 1))
+
 		return features
 
 class IdentityFeatureExtractor(object):

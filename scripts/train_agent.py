@@ -19,9 +19,9 @@ import learning_agents
 def get_agent(gamepath,
 			learning_algorithm=learning_agents.QLearningAlgorithm,
 			feature_extractor=feature_extractors.OpenCVBoundingBoxExtractor,
-			discount=0.999,
+			discount=0.99,
 			explorationProb=.5,
-			load_weights=True):
+			load_weights=False):
 	"""
 	:description: instantiates an agent
 
@@ -68,7 +68,7 @@ def get_agent(gamepath,
 
 	return agent
 
-def train_agent(gamepath, agent, n_episodes=1000, display_screen=True):
+def train_agent(gamepath, agent, n_episodes=10000, display_screen=False):
 	"""
 	:description: trains an agent to play a game 
 
@@ -103,7 +103,7 @@ def train_agent(gamepath, agent, n_episodes=1000, display_screen=True):
 	ale.loadROM(gamepath)
 
 	rewards = []
-	best_reward = 0
+	best_reward = -5
 	# train the agent
 	for episode in xrange(n_episodes):
 		total_reward = 0
@@ -113,7 +113,7 @@ def train_agent(gamepath, agent, n_episodes=1000, display_screen=True):
 
 		# let's just say the start screen is all zeros and our first action is 0
 		screen = np.zeros((preprocessor.dim, preprocessor.dim, preprocessor.channels))
-		state = { "screen" : screen, "objects" : None }
+		state = { "screen" : screen, "objects" : None, "prev_objects": None, "prev_action": 0 }
 		action = 0
 		counter = 0
 		reward = 0
@@ -131,8 +131,10 @@ def train_agent(gamepath, agent, n_episodes=1000, display_screen=True):
 	
 			# 3. request an action from the agent
 			prev_objects = state["objects"]
-			new_state = { "screen": new_preprocessed_screen, "objects": None , "prev_objects": state["objects"]} 
+			new_state = { "screen": new_preprocessed_screen, "objects": None , 
+						"prev_objects": state["objects"], "prev_action": state["prev_action"]} 
 			action = agent.getAction(new_state)
+			new_state["prev_action"] = action
 
 			# 4. perform that action and receive the corresponding reward
 			reward = ale.act(action)
@@ -154,11 +156,11 @@ def train_agent(gamepath, agent, n_episodes=1000, display_screen=True):
 			# 6. set the new screen to be the old screen
 			state = new_state
 
-			# 7. if we had a new record, save the feature weights
-			if reward > best_reward:
-				best_reward = reward
-				file_utils.save_weights(agent.weights)
-				print("best reward!: {}".format(reward))
+		# 7. if we had a new record, save the feature weights
+		if total_reward > best_reward:
+			best_reward = total_reward
+			file_utils.save_weights(agent.weights)
+			print("best reward!: {}".format(total_reward))
 
 		if agent.explorationProb > .1:
 			agent.explorationProb -= .005
