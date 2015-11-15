@@ -162,7 +162,7 @@ class BoundingBoxExtractor(object):
 def get_center(x,y,w,h):
 	return ((x + w) / 2, (y + h) / 2)
 
-class OpenCVBoundingBox(object):
+class OpenCVBoundingBoxExtractor(object):
 	"""
 	TODO:
 	1. these features need to be cross features
@@ -170,18 +170,18 @@ class OpenCVBoundingBox(object):
 	2. need to incorporate action into all these cross features
 	3. need to incorporate past position with current position 
 	"""
-	def __init__(self):
+	def __init__(self, threshold=10):
 		self.iter = 0
 		self.found_centers = []
-		self.threshold = 10
+		self.threshold = threshold
 
 	""" is this center inside any previous box? """
 	def found_already(self, x, y, w, h):
 		cx, cy = get_center(x,y,w,h)
-		for fcx, fcy in self.found:
+		for fcx, fcy in self.found_centers:
 			if math.sqrt((fcx-cx)**2 + (fcy-cy)**2) < self.threshold:
 				return True
-		self.found.append((cx, cy))
+		self.found_centers.append((cx, cy))
 		return False
 
 	def get_bounding_boxes(self, screen):
@@ -216,10 +216,9 @@ class OpenCVBoundingBox(object):
 			return []
 
 		if state["objects"] == None:
-			self.found = []
-			millis = int(round(time.time() * 1000))
+			self.found_centers = []
 			state["objects"] = self.get_bounding_boxes(screen)
-			#print "Locating objects took: " + str(int(round(time.time() * 1000)) - millis)
+			
 		centers = []
 		for (x,w), (y,h) in state["objects"]:
 			centers.append(get_center(x,w,y,h))

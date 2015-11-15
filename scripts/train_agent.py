@@ -18,7 +18,7 @@ import learning_agents
 
 def get_agent(gamepath,
 			learning_algorithm=learning_agents.QLearningAlgorithm,
-			feature_extractor=feature_extractors.OpenCVBoundingBox,
+			feature_extractor=feature_extractors.OpenCVBoundingBoxExtractor,
 			discount=0.999,
 			explorationProb=.5,
 			load_weights=True):
@@ -68,7 +68,7 @@ def get_agent(gamepath,
 
 	return agent
 
-def train_agent(gamepath, agent, n_episodes=1000, display_screen=False):
+def train_agent(gamepath, agent, n_episodes=1000, display_screen=True):
 	"""
 	:description: trains an agent to play a game 
 
@@ -130,9 +130,8 @@ def train_agent(gamepath, agent, n_episodes=1000, display_screen=False):
 			new_preprocessed_screen = preprocessor.preprocess(new_screen)
 	
 			# 3. request an action from the agent
-
-			new_state = { "screen" : new_preprocessed_screen, "objects" : None , "prev_objects" : state["objects"]} 
-
+			prev_objects = state["objects"]
+			new_state = { "screen": new_preprocessed_screen, "objects": None , "prev_objects": state["objects"]} 
 			action = agent.getAction(new_state)
 
 			# 4. perform that action and receive the corresponding reward

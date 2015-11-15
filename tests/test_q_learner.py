@@ -35,7 +35,8 @@ class TestQLearner(unittest.TestCase):
 		discount = 1
 		feature_extractor = feature_extractors.IdentityFeatureExtractor()
 		exploration_prob = 0
-		ql = learning_agents.QLearningAlgorithm(legal_actions, discount, feature_extractor,  exploration_prob)
+		step_size = 1
+		ql = learning_agents.QLearningAlgorithm(legal_actions, discount, feature_extractor,  exploration_prob, step_size)
 
 		state = {'test_feature' : 1}
 		new_state = {'test_feature' : 2}
@@ -52,7 +53,8 @@ class TestQLearner(unittest.TestCase):
 		discount = 1
 		feature_extractor = feature_extractors.IdentityFeatureExtractor()
 		exploration_prob = 0
-		ql = learning_agents.QLearningAlgorithm(legal_actions, discount, feature_extractor,  exploration_prob)
+		step_size = 1
+		ql = learning_agents.QLearningAlgorithm(legal_actions, discount, feature_extractor,  exploration_prob, step_size)
 
 		state = {'test_feature' : 1}
 		new_state = {'test_feature' : 2}
@@ -64,7 +66,7 @@ class TestQLearner(unittest.TestCase):
 		ql.incorporateFeedback(state, action, reward, new_state)
 		
 		actual = ql.weights
-		expected = collections.Counter({'test_feature': 1.5})
+		expected = collections.Counter({'test_feature': 2})
 		self.assertEquals(actual, expected)
 
 	def test_getQ_incorporating_feedback_longterm(self):

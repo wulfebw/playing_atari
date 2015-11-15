@@ -26,13 +26,14 @@ class RLAlgorithm:
 # explorationProb: the epsilon value indicating how frequently the policy
 # returns a random action
 class QLearningAlgorithm(RLAlgorithm):
-    def __init__(self, actions, discount, featureExtractor, explorationProb=0.2):
+    def __init__(self, actions, discount, featureExtractor, explorationProb=0.2, stepSize=0.1):
         self.actions = actions
         self.discount = discount
         self.featureExtractor = featureExtractor
         self.explorationProb = explorationProb
         self.weights = collections.Counter()
         self.numIters = 1
+        self.stepSize = stepSize
 
     # Return the Q function associated with the weights and features
     def getQ(self, state, action):
@@ -56,7 +57,7 @@ class QLearningAlgorithm(RLAlgorithm):
     # Call this function to get the step size to update the weights.
     def getStepSize(self):
         #return 1.0 / self.numIters
-        return .1
+        return self.stepSize
 
     # We will call this function with (s, a, r, s'), which you should use to update |weights|.
     # Note that if s is a terminal state, then s' will be None.  Remember to check for this.
@@ -91,13 +92,13 @@ class QLearningAlgorithm(RLAlgorithm):
             assert(self.weights[f] < 1000000)
 
 
-        print('prediction: {}'.format(prediction))
-        print('target: {}'.format(target))
-        print('state["objects"]: {}'.format(state["objects"]))
-        print('action: {}'.format(action))
-        print('reward: {}'.format(reward))
-        print('newState["objects"]: {}'.format(newState["objects"]))
-        for k, v in self.weights.iteritems():
-            print('feature: {}\t weight: {}'.format(k,v))
-        print '\n' * 5
+        # print('prediction: {}'.format(prediction))
+        # print('target: {}'.format(target))
+        # print('state["objects"]: {}'.format(state["objects"]))
+        # print('action: {}'.format(action))
+        # print('reward: {}'.format(reward))
+        # print('newState["objects"]: {}'.format(newState["objects"]))
+        # for k, v in self.weights.iteritems():
+        #     print('feature: {}\t weight: {}'.format(k,v))
+        # print '\n' * 5
 
