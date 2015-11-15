@@ -21,7 +21,7 @@ def get_agent(gamepath,
 			feature_extractor=feature_extractors.OpenCVBoundingBoxExtractor,
 			discount=0.99,
 			explorationProb=.5,
-			load_weights=False):
+			load_weights=True):
 	"""
 	:description: instantiates an agent
 
@@ -163,7 +163,7 @@ def train_agent(gamepath, agent, n_episodes=10000, display_screen=False):
 			print("best reward!: {}".format(total_reward))
 
 		if agent.explorationProb > .1:
-			agent.explorationProb -= .005
+			agent.explorationProb -= .01
 		rewards.append(total_reward)
 		print('episode: {} ended with score: {}'.format(episode, total_reward))
 		ale.reset_game()
