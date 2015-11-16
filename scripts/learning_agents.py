@@ -1,5 +1,4 @@
 import sys, collections, math, random
-import pprint
 
 # Abstract class: an RLAlgorithm performs reinforcement learning.  All it needs
 # to know is the set of available actions to take.  The simulator (see
@@ -50,7 +49,7 @@ class QLearningAlgorithm(RLAlgorithm):
     # |explorationProb|, take a random action.
     def getAction(self, state):
         self.numIters += 1
-        if self.numIters % 20 == 0:
+        if self.numIters % 5 == 0:
             self.target_weights = self.weights
 	#print "############# checking actions: " + str(len(self.actions))
         if random.random() < self.explorationProb: 
@@ -99,7 +98,7 @@ class QLearningAlgorithm(RLAlgorithm):
         elif update < -max_gradient:
             update = -max_gradient
         for f, v in self.featureExtractor(state, action):
-            #print("feature: {}\textracted value: {}".format(f,v))
+            # print("feature: {}\textracted value: {}".format(f,v))
             # self.weights[f] = self.weights[f] - stepSize*(prediction - target)*v
             self.weights[f] = self.weights[f] - update*v
             assert(self.weights[f] < 10000)
@@ -114,4 +113,5 @@ class QLearningAlgorithm(RLAlgorithm):
         # for k, v in self.weights.iteritems():
         #     print('feature: {}\t weight: {}'.format(k,v))
         # print '\n' * 5
+
 

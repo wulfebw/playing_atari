@@ -20,7 +20,7 @@ def get_agent(gamepath,
 			learning_algorithm=learning_agents.QLearningAlgorithm,
 			feature_extractor=feature_extractors.OpenCVBoundingBoxExtractor,
 			discount=0.99,
-			explorationProb=.6,
+			explorationProb=.3,
 			load_weights=True):
 	"""
 	:description: instantiates an agent
@@ -103,7 +103,7 @@ def train_agent(gamepath, agent, n_episodes=10000, display_screen=False):
 	ale.loadROM(gamepath)
 
 	rewards = []
-	best_reward = -5
+	best_reward = 2
 	# train the agent
 	for episode in xrange(n_episodes):
 		total_reward = 0
@@ -114,13 +114,18 @@ def train_agent(gamepath, agent, n_episodes=10000, display_screen=False):
 		# let's just say the start screen is all zeros and our first action is 0
 		screen = np.zeros((preprocessor.dim, preprocessor.dim, preprocessor.channels))
 		state = { "screen" : screen, "objects" : None, "prev_objects": None, "prev_action": 0 }
-		action = 0
+		action = 1
 		counter = 0
 		reward = 0
 		lives = ale.lives()
 		# each episode consists of a game
 		while not ale.game_over():
 			counter += 1
+
+			if counter % 4 != 0:
+				reward += ale.act(action)
+				continue
+
 
 			# 1. retrieve the screen for the current frame, this amounts to the state
 			#new_screen = ale.getScreenGrayscale()
@@ -137,7 +142,7 @@ def train_agent(gamepath, agent, n_episodes=10000, display_screen=False):
 			new_state["prev_action"] = action
 
 			# 4. perform that action and receive the corresponding reward
-			reward = ale.act(action)
+			reward += ale.act(action)
 			if ale.lives() < lives:
 				lives = ale.lives()
 				reward -= 1
@@ -156,14 +161,19 @@ def train_agent(gamepath, agent, n_episodes=10000, display_screen=False):
 			# 6. set the new screen to be the old screen
 			state = new_state
 
+			reward = 0
+
 		# 7. if we had a new record, save the feature weights
 		if total_reward > best_reward:
 			best_reward = total_reward
 			file_utils.save_weights(agent.weights)
 			print("best reward!: {}".format(total_reward))
 
+		if episode != 0 and episode % 1000 == 0:
+			file_utils.save_weights(agent.weights)
+
 		if agent.explorationProb > .1:
-			agent.explorationProb -= .005
+			agent.explorationProb -= .02
 		rewards.append(total_reward)
 		print('episode: {} ended with score: {}'.format(episode, total_reward))
 		ale.reset_game()

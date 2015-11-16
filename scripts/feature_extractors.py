@@ -235,6 +235,13 @@ class OpenCVBoundingBoxExtractor(object):
 			for c, pc in zip(centers, prev_centers):
 				derivative_pos.append(tuple(map(operator.sub, c, pc)))
 
+		features = []
+		prev_action_name = 'prev-action-{}'.format(state["prev_action"])
+		action_name = 'action-{}'.format(action)
+		features.append((prev_action_name, 1))
+		features.append((action_name, 1))
+		features.append(((action_name, prev_action_name), 1))
+
 		pos_names = []
 		# base position feature
 		for idx, (cx, cy) in enumerate(centers):
@@ -242,6 +249,9 @@ class OpenCVBoundingBoxExtractor(object):
 			name_y = 'object-{}-y-{}'.format(idx, round(cy, -1))
 			pos_names.append(name_x)
 			pos_names.append(name_y)
+			features.append((name_x, 1))
+			features.append((name_y, 1))
+			features.append(((action_name, name_x), 1))
 
 		# derivatives
 		deriv_names = []
@@ -252,35 +262,23 @@ class OpenCVBoundingBoxExtractor(object):
 			name_y = 'object-{}-dy-{}'.format(idx, dy)
 			deriv_names.append(name_x)
 			deriv_names.append(name_y)
+			features.append((name_x, 1))
+			features.append((name_y, 1))
+			features.append(((name_x, action_name), 1))
+			features.append(((name_x, prev_action_name), 1))
+
 
 		# differences
 		diff_names = []
 		for (cx0, cy0), (cx1, cy1) in zip(centers, centers[1:]):
-			x = 1 if cx0 > cx1 else -1
-			diff_x = 'diff-x-pos-{}'.format(x)
-			y = 1 if cy0 > cy1 else -1
-			diff_y = 'diff-y-pos-{}'.format(y)
+			diff_x = 'diff-x-pos-{}'.format(cx0 - cx1)
+			diff_y = 'diff-y-pos-{}'.format(cy0 - cy1)
 			diff_names.append((diff_x, 1))
 			diff_names.append((diff_y, 1))
-
-		#feature_names += list(itertools.combinations(feature_names, 2))
-		features = []
-		prev_action_name = 'prev-action-{}'.format(state["prev_action"])
-		action_name = 'action-{}'.format(action)
-
-		features.append((prev_action_name, 1))
-		features.append((action_name, 1))
-		for pos in pos_names:
-			features.append((pos, 1))
-			features.append(((pos, prev_action_name), 1))
-			for deriv in deriv_names:
-				features.append((deriv, 1))
-				features.append(((deriv, prev_action_name), 1))
-				features.append(((deriv, prev_action_name), 1))
-				for diff in diff_names:
-					features.append((diff, 1))
-					features.append(((diff, prev_action_name), 1))
-					features.append(((pos, deriv, diff, action_name), 1))
+			features.append((diff_x, 1))
+			features.append((diff_y, 1))
+			features.append(((diff_x, prev_action_name), 1))
+			features.append(((diff_x, action_name), 1))
 
 		return features
 
