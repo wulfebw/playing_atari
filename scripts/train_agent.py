@@ -18,7 +18,7 @@ import learning_agents
 
 def get_agent(gamepath,
 			learning_algorithm=learning_agents.QLearningAlgorithm,
-			feature_extractor=feature_extractors.BoundingBoxExtractor,
+			feature_extractor=feature_extractors.OpenCVBoundingBoxExtractor,
 			discount=0.99,
 			explorationProb=.3,
 			load_weights=True):
