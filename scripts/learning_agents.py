@@ -45,7 +45,6 @@ class QLearningAlgorithm(RLAlgorithm):
     # |explorationProb|, take a random action.
     def getAction(self, state):
         self.numIters += 1
-	print "############# checking actions: " + str(len(self.actions))
         if random.random() < self.explorationProb: 
             return random.choice(self.actions)
         else:

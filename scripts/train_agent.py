@@ -102,7 +102,7 @@ def train_agent(gamepath, agent, n_episodes=1000, display_screen=True):
 		total_reward = 0
 
 		# need a preprocessor with some state
-		preprocessor = screen_utils.GrayscaleScreenPreprocessor()
+		preprocessor = screen_utils.BlobScreenPreprocessor()
 
 		# let's just say the start screen is all zeros and our first action is 0
 		screen = np.zeros((preprocessor.dim, preprocessor.dim, preprocessor.channels))
@@ -120,7 +120,7 @@ def train_agent(gamepath, agent, n_episodes=1000, display_screen=True):
 			# 	continue
 
 			# 1. retrieve the screen for the current frame, this amounts to the state
-			new_screen = ale.getScreenGrayscale()
+			new_screen = ale.getScreenRGB()
 
 			# 2. preprocess the screen
 			new_preprocessed_screen = preprocessor.preprocess(new_screen)
