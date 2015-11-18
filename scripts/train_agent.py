@@ -21,7 +21,7 @@ def get_agent(gamepath,
 			feature_extractor=feature_extractors.BoundingBoxExtractor,
 			discount=0.99,
 			explorationProb=.3,
-			load_weights=False):
+			load_weights=True):
 	"""
 	:description: instantiates an agent
 
@@ -44,9 +44,14 @@ def get_agent(gamepath,
 	"""
 	
 	# 1. load the legal actions for this game (don't see a reasonable way around this)
-	ale = ALEInterface()
-	ale.loadROM(gamepath)
-	legal_actions = ale.getLegalActionSet()
+	# ale = ALEInterface()
+	# ale.loadROM(gamepath)
+	# 3 goes right
+	# 4 goes left
+	# 6 also goes right?
+	# 7 also goes left?
+	# 8 goes right also
+	legal_actions = np.array([1,3,4])#ale.getLegalActionSet()
 
 	# 2. instantiate and return agent
 	fe = feature_extractor()
@@ -57,12 +62,13 @@ def get_agent(gamepath,
 
 	# 3. load and set weights if we have them
 	if load_weights:
-		agent.weights = file_utils.load_weights()
-		print(agent.weights)
+		weights = file_utils.load_weights()
+		if weights is not None:
+			agent.weights = weights
 
 	return agent
 
-def train_agent(gamepath, agent, n_episodes=1000, display_screen=True):
+def train_agent(gamepath, agent, n_episodes=10000, display_screen=False):
 	"""
 	:description: trains an agent to play a game 
 
@@ -97,40 +103,57 @@ def train_agent(gamepath, agent, n_episodes=1000, display_screen=True):
 	ale.loadROM(gamepath)
 
 	rewards = []
+	best_reward = 2
 	# train the agent
 	for episode in xrange(n_episodes):
 		total_reward = 0
 
 		# need a preprocessor with some state
 		preprocessor = screen_utils.BlobScreenPreprocessor()
+		#preprocessor = screen_utils.RGBScreenPreprocessor()
 
 		# let's just say the start screen is all zeros and our first action is 0
 		screen = np.zeros((preprocessor.dim, preprocessor.dim, preprocessor.channels))
-		state = { "screen" : screen, "objects" : None }
-		action = 0
+		state = { "screen" : screen, "objects" : None, "prev_objects": None, "prev_action": 0 }
+		action = 1
 		counter = 0
-		best_reward = 0
 		reward = 0
+		lives = ale.lives()
 		# each episode consists of a game
 		while not ale.game_over():
-			# # 0. let's skip some frames this is taking too long
-			# if counter % 5 != 0:
-			# 	reward += ale.act(action)
-			# 	counter += 1
-			# 	continue
+			counter += 1
+
+			if counter % 4 != 0:
+				reward += ale.act(action)
+				continue
+
 
 			# 1. retrieve the screen for the current frame, this amounts to the state
+			#new_screen = ale.getScreenGrayscale()
 			new_screen = ale.getScreenRGB()
 
 			# 2. preprocess the screen
 			new_preprocessed_screen = preprocessor.preprocess(new_screen)
 	
 			# 3. request an action from the agent
-			new_state = { "screen" : new_preprocessed_screen, "objects" : None } 
+			prev_objects = state["objects"]
+			new_state = { "screen": new_preprocessed_screen, "objects": None , 
+						"prev_objects": state["objects"], "prev_action": state["prev_action"]} 
 			action = agent.getAction(new_state)
+			new_state["prev_action"] = action
 
 			# 4. perform that action and receive the corresponding reward
-			reward = ale.act(action)
+			reward += ale.act(action)
+			if ale.lives() < lives:
+				lives = ale.lives()
+				reward -= 1
+			
+			# restrict reward to {-1, 0, 1}
+			if reward > 0:
+				reward = 1
+			elif reward < 0:
+				reward = -1
+
 			total_reward += reward
 
 			# 5. incorporate this feedback into the agent
@@ -139,13 +162,19 @@ def train_agent(gamepath, agent, n_episodes=1000, display_screen=True):
 			# 6. set the new screen to be the old screen
 			state = new_state
 
-			# 7. if we had a new record, save the feature weights
-			if reward > best_reward and False:
-				best_reward = reward
-				file_utils.save_weights(agent.weights)
+			reward = 0
+
+		# 7. if we had a new record, save the feature weights
+		if total_reward > best_reward:
+			best_reward = total_reward
+			file_utils.save_weights(agent.weights)
+			print("best reward!: {}".format(total_reward))
+
+		if episode != 0 and episode % 1000 == 0:
+			file_utils.save_weights(agent.weights)
 
 		if agent.explorationProb > .1:
-			agent.explorationProb -= .005
+			agent.explorationProb -= .02
 		rewards.append(total_reward)
 		print('episode: {} ended with score: {}'.format(episode, total_reward))
 		ale.reset_game()

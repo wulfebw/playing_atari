@@ -1,12 +1,18 @@
 """
 :description: functions for extracting features from screens
 """
+import os
 import sys
 import Queue
 import random
 import string
 import time
+import math
 import numpy as np
+import cv2
+import copy
+import operator
+import itertools
 
 class CoordinateExtractor(object):
 
@@ -54,6 +60,7 @@ class BoundingBoxExtractor(object):
 		self.object_id_counter = 0
 		self.background_color = None
 		self.RESERVOIR_SIZE = 10
+		self.VERBOSE = False
 
 	def within_tolerance(self, pixel1, pixel2, tolerance_threshold):
 		r1 = pixel1 >> 16
@@ -110,7 +117,7 @@ class BoundingBoxExtractor(object):
 			d = (pos[0], pos[1] - 1)
                         if (d[0] >= 0 and not used[d[0]][d[1]]):
                                 to_explore.put(d)
-		print "found object with color: " + str(object_val) + " size: " + str(len(object_coords)) + " min: " + str((min_x, min_y)) + " max: " + str((max_x,max_y))
+		#print "found object with color: " + str(object_val) + " size: " + str(len(object_coords)) + " min: " + str((min_x, min_y)) + " max: " + str((max_x,max_y))
 		return (((min_x, min_y), (max_x, max_y)), tuple(object_coords))
 		
 	def get_rgb_int_val(self, r, g, b):
@@ -126,7 +133,7 @@ class BoundingBoxExtractor(object):
 			print "Found background color: " + str(self.background_color)
 		boxes_and_objects = []
 		#self.print_screen(screen)
-		print "Searching for objects..."
+		#print "Searching for objects..."
 		for x in range(0, screen.shape[0]):
                         for y in range(0, screen.shape[1]):
 				screen_color = self.get_rgb_int_val(screen.item(x,y,0),screen.item(x,y,1),screen.item(x,y,2))
@@ -209,7 +216,8 @@ class BoundingBoxExtractor(object):
 				if counts[pixel_val] > max_count:
 					max_count = counts[pixel_val]
 					max_color = pixel_val
-		print "Found background color: " + str(max_color)
+		if self.VERBOSE:
+			print "Found background color: " + str(max_color)
 		return max_color
 
 	def __call__(self, state, action):
@@ -220,9 +228,10 @@ class BoundingBoxExtractor(object):
 			boxes_and_objects = self.get_bounding_boxes(screen)
 			objects_and_boxes = self.classify_objects(boxes_and_objects)
 			state["objects"] = objects_and_boxes
-			print "Locating objects took: " + str(int(round(time.time() * 1000)) - millis) 
-			print "objects: " + str(state["objects"])
-			print_features = True
+			if self.VERBOSE:
+				print "Locating objects took: " + str(int(round(time.time() * 1000)) - millis) 
+				print "objects: " + str(state["objects"])
+				print_features = True
 		features = []
 		# add singleton features
 		for object_and_box in state["objects"]:
@@ -248,3 +257,129 @@ class BoundingBoxExtractor(object):
 		if print_features:
 			print "features: " + str(features)
 		return features
+
+
+def get_center(x,y,w,h):
+	return ((x + w) / 2, (y + h) / 2)
+
+class OpenCVBoundingBoxExtractor(object):
+	"""
+	TODO:
+	1. these features need to be cross features
+		e.g., (((ball-x:5),(paddle-x:10), (action-left:1)), 1)
+	2. need to incorporate action into all these cross features
+	3. need to incorporate past position with current position 
+	"""
+	def __init__(self, threshold=10):
+		self.iter = 0
+		self.found_centers = []
+		self.threshold = threshold
+
+	""" is this center inside any previous box? """
+	def found_already(self, x, y, w, h):
+		cx, cy = get_center(x,y,w,h)
+		for fcx, fcy in self.found_centers:
+			if math.sqrt((fcx-cx)**2 + (fcy-cy)**2) < self.threshold:
+				return True
+		self.found_centers.append((cx, cy))
+		return False
+
+	def get_bounding_boxes(self, screen):
+		self.iter = self.iter + 1;
+		img = copy.deepcopy(screen)
+		imgray = cv2.cvtColor(img,cv2.COLOR_BGR2GRAY)
+		edges = cv2.Canny(imgray, 20, 100)
+		ret, thresh = cv2.threshold(edges, 127, 255, 0)
+		contours, hierarchy = cv2.findContours(thresh,cv2.RETR_TREE,cv2.CHAIN_APPROX_SIMPLE)
+		contours = [cont for cont in contours if cv2.arcLength(cont, True) > 10]
+
+		approx = []
+		for cnt in contours:
+		    epsilon = 0.00*cv2.arcLength(cnt,True)
+		    approx.append(cv2.approxPolyDP(cnt,epsilon,True))
+
+		boxes = []
+		for idx, cont in enumerate(approx):
+		    x,y,w,h = cv2.boundingRect(cont)
+		    get_center(x,y,w,h)
+		    if not self.found_already(x,y,w,h):
+		    	boxes.append(((x,w),(y,h)))
+		#     cv2.rectangle(img, (x,y), (x+w, y+h), (0,255,0))
+		# cv2.imshow('img_w_boxes', img)
+		return boxes
+
+	def __call__(self, state, action):
+		screen = state["screen"]
+		if len(screen[0][0]) != 3:
+			return []
+
+		if state["objects"] == None:
+			self.found_centers = []
+			state["objects"] = self.get_bounding_boxes(screen)
+
+		centers = []
+		for (x,w), (y,h) in state["objects"]:
+			centers.append(get_center(x,w,y,h))
+		centers = sorted(centers, key=lambda x: x[1])
+
+		prev_centers = []
+		if state["prev_objects"] is not None:
+			for (x,w), (y,h) in state["prev_objects"]:
+				prev_centers.append(get_center(x,w,y,h))
+		prev_centers = sorted(prev_centers, key=lambda x: x[1])
+
+		derivative_pos = []
+		if len(centers) == len(prev_centers):
+			for c, pc in zip(centers, prev_centers):
+				derivative_pos.append(tuple(map(operator.sub, c, pc)))
+
+		features = []
+		prev_action_name = 'prev-action-{}'.format(state["prev_action"])
+		action_name = 'action-{}'.format(action)
+		features.append((prev_action_name, 1))
+		features.append((action_name, 1))
+		features.append(((action_name, prev_action_name), 1))
+
+		pos_names = []
+		# base position feature
+		for idx, (cx, cy) in enumerate(centers):
+			name_x = 'object-{}-x-{}'.format(idx, round(cx, -1))
+			name_y = 'object-{}-y-{}'.format(idx, round(cy, -1))
+			pos_names.append(name_x)
+			pos_names.append(name_y)
+			features.append((name_x, 1))
+			features.append((name_y, 1))
+			features.append(((action_name, name_x), 1))
+
+		# derivatives
+		deriv_names = []
+		for idx, (dx, dy) in enumerate(derivative_pos):
+			dx = 1 if dx > 0 else -1
+			name_x = 'object-{}-dx-{}'.format(idx, dx)
+			dy = 1 if dy > 0 else -1
+			name_y = 'object-{}-dy-{}'.format(idx, dy)
+			deriv_names.append(name_x)
+			deriv_names.append(name_y)
+			features.append((name_x, 1))
+			features.append((name_y, 1))
+			features.append(((name_x, action_name), 1))
+			features.append(((name_x, prev_action_name), 1))
+
+
+		# differences
+		diff_names = []
+		for (cx0, cy0), (cx1, cy1) in zip(centers, centers[1:]):
+			diff_x = 'diff-x-pos-{}'.format(cx0 - cx1)
+			diff_y = 'diff-y-pos-{}'.format(cy0 - cy1)
+			diff_names.append((diff_x, 1))
+			diff_names.append((diff_y, 1))
+			features.append((diff_x, 1))
+			features.append((diff_y, 1))
+			features.append(((diff_x, prev_action_name), 1))
+			features.append(((diff_x, action_name), 1))
+
+		return features
+
+class IdentityFeatureExtractor(object):
+	def __call__(self, state, action):
+		return [(k, v) for k, v in state.iteritems()]
