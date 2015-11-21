@@ -109,7 +109,8 @@ def train_agent(gamepath, agent, n_episodes=10000, display_screen=False):
 		total_reward = 0
 
 		# need a preprocessor with some state
-		preprocessor = screen_utils.RGBScreenPreprocessor()
+		preprocessor = screen_utils.BlobScreenPreprocessor()
+		#preprocessor = screen_utils.RGBScreenPreprocessor()
 
 		# let's just say the start screen is all zeros and our first action is 0
 		screen = np.zeros((preprocessor.dim, preprocessor.dim, preprocessor.channels))

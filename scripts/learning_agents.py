@@ -51,7 +51,6 @@ class QLearningAlgorithm(RLAlgorithm):
         self.numIters += 1
         if self.numIters % 5 == 0:
             self.target_weights = self.weights
-	#print "############# checking actions: " + str(len(self.actions))
         if random.random() < self.explorationProb: 
             return random.choice(self.actions)
         else:
