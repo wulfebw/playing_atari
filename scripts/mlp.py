@@ -44,6 +44,7 @@ class MLP(object):
 		params = self.get_params()
 		gparams = T.grad(loss, params)
 		updates = [(param, param - self.learning_rate * gparam) for param, gparam in zip(params, gparams)]
+
 		return (loss, updates)
 
 	def get_params(self):

@@ -28,7 +28,7 @@ def train(gamepath,
 			record_weights=True, 
 			reduce_exploration_prob_amount=True,
 			n_frames_to_skip=4,
-			exploration_prob=.0,
+			exploration_prob=.3,
 			verbose=True):
 	"""
 	:description: trains an agent to play a game 
@@ -71,11 +71,14 @@ def train(gamepath,
 	hidden_layer = HiddenLayer(n_vis=MAX_FEATURES, n_hid=len(actions), layer_name='hl1')
 	output_layer = OutputLayer(layer_name='ol1')
 	layers = [hidden_layer, output_layer]
-	mlp = MLP(layers, discount=.999, learning_rate=0.005)
+	mlp = MLP(layers, discount=.99, learning_rate=0.01)
 	loss, updates = mlp.get_loss_and_updates(features, action, reward, next_features)
 
 	train_model = theano.function(
-					[features, action, reward, next_features],
+					[theano.Param(features, default=np.zeros(MAX_FEATURES)),
+					theano.Param(action, default=0),
+					theano.Param(reward, default=0),
+					theano.Param(next_features, default=np.zeros(MAX_FEATURES))],
 					[loss],
 					updates=updates,
 					mode='FAST_RUN')
@@ -108,9 +111,13 @@ def train(gamepath,
 				action = T.argmax(mlp.fprop(features)).eval()
 			if action == 0: action = 3
 			if action == 1: action = 4 
+			real_action = action
 			reward = ale.act(action)
 			if action == 3: action = 0
 			if action == 4: action = 1 
+			if ale.lives() < lives: 
+				lives = ale.lives()
+				reward -= 1
 
 			next_screen = ale.getScreenRGB()
 			next_screen = preprocessor.preprocess(next_screen)
@@ -125,9 +132,11 @@ def train(gamepath,
 			if verbose:
 				print('loss: {}'.format(loss))
 				print('reward: {}'.format(reward))
-				print('action: {}'.format(action))
+				print('action: {}'.format(real_action))
+				print('updates: {}'.format([up[0].eval() for up in updates]))
+				print('params: {}'.format([p.eval() for p in mlp.get_params()]))
 				print('features: {}'.format(features))
-				print('next_features: {}'.format(next_features))
+				print('next_features: {}\n'.format(next_features))
 
 			reward = 0
 		rewards.append(total_reward)
@@ -155,6 +164,8 @@ if __name__ == '__main__':
 	rewards = train(gamepath, 
 					n_episodes=10000, 
 					display_screen=True, 
-					record_weights=False, 
+					record_weights=True, 
 					reduce_exploration_prob_amount=.0005,
-					n_frames_to_skip=4)
+					n_frames_to_skip=4,
+					exploration_prob=.4,
+					verbose=True,)
