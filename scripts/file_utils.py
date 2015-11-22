@@ -3,9 +3,12 @@
 """
 
 import os
+import csv
 import pickle
 import cPickle
 import datetime
+
+import numpy as np
 
 def save_weights(weights, episodic=False):
 
@@ -31,8 +34,8 @@ def load_weights():
 		print("weight file {} not found, reinitializing weights".format(input_filename))
 	return weights
 
-def save_model(model, output_filename):
-	f = file(output_filename, 'wb')
+def save_model(model, model_filename):
+	f = file(model_filename, 'wb')
 	cPickle.dump(model, f, protocol=cPickle.HIGHEST_PROTOCOL)
 	f.close()
 
@@ -41,3 +44,17 @@ def load_model(model_filename):
 	model = cPickle.load(f)
 	f.close()
 	return model
+
+def save_rewards(rewards, output_filename='latest'):
+	output_filepath = "rewards/{}".format(output_filename)
+	np.savez(output_filepath, rewards=rewards)
+
+def load_rewards(input_filename='latest.npz'):
+	input_filepath = "rewards/{}".format(input_filename)
+	return np.load(input_filepath)['rewards']
+	
+
+
+
+
+
