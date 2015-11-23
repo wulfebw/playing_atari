@@ -1,6 +1,11 @@
 """
 :description: multilayer perceptron and layer classes
+
+:note: this implementation is based on a q network implementation
+        by Nathan Sprague which can be found on github here:
+        https://github.com/spragunr/deep_q_rl
 """
+import sys
 
 import numpy as np
 import theano
@@ -68,7 +73,8 @@ class MLP(object):
         """
         q_values = self.fprop(features)
         next_q_values = self.fprop(next_features)
-        target = reward + self.discount * T.max(next_q_values, axis=0)
+        next_q_values = theano.gradient.disconnected_grad(next_q_values)
+        target = reward + self.discount * T.max(next_q_values)
         loss = .5 * T.sqr(target - q_values[action])
 
         params = self.get_params()
