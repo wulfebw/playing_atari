@@ -47,7 +47,7 @@ def get_agent(gamepath,
     
     # 3 goes right
     # 4 goes left
-    legal_actions = np.array([1,3,4]) # ale.getLegalActionSet()
+    legal_actions = np.array([0,1,3,4]) # ale.getLegalActionSet()
 
     # 2. instantiate and return agent
     fe = feature_extractor()
@@ -115,7 +115,7 @@ def train_agent(gamepath,
         reward = 0
         lives = ale.lives()
         preprocessor = screen_utils.RGBScreenPreprocessor()
-        screen = np.zeros((preprocessor.dim, preprocessor.dim, preprocessor.channels))
+        screen = np.zeros((preprocessor.dim, preprocessor.dim, preprocessor.channels), dtype=np.int8)
         state = { "screen" : screen, "objects" : None, "prev_objects": None, "prev_action": 0, "action": 0 }
         
         while not ale.game_over():
@@ -126,9 +126,9 @@ def train_agent(gamepath,
 
             action = agent.getAction(state)
             reward += ale.act(action)
-            # if ale.lives() < lives:
-            #   lives = ale.lives()
-            #   reward -= 1
+            if ale.lives() < lives:
+              lives = ale.lives()
+              reward -= 1
             total_reward += reward
 
             new_screen = ale.getScreenRGB()
@@ -165,13 +165,13 @@ if __name__ == '__main__':
                     feature_extractor=feature_extractors.OpenCVBoundingBoxExtractor,
                     load_weights=False,
                     discount=0.999,
-                    explorationProb=0.0,
-                    stepSize=0.005,
+                    explorationProb=0.4,
+                    stepSize=0.01,
                     maxGradient=1)
     rewards = train_agent(gamepath, 
                         agent, 
                         n_episodes=20000, 
-                        display_screen=True, 
-                        record_weights=False, 
-                        reduce_exploration_prob_amount=.0001,
+                        display_screen=False, 
+                        record_weights=True, 
+                        reduce_exploration_prob_amount=.00001,
                         n_frames_to_skip=4)

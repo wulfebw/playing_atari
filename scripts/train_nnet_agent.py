@@ -101,9 +101,10 @@ def train(gamepath,
     reward = T.dscalar('reward')
     next_features = T.dvector('next_features')
 
-    hidden_layer = HiddenLayer(n_vis=MAX_FEATURES, n_hid=len(actions), layer_name='hidden1', activation='relu')
-    output_layer = OutputLayer(layer_name='output1', activation='relu')
-    layers = [hidden_layer, output_layer]
+    hidden_layer_1 = HiddenLayer(n_vis=MAX_FEATURES, n_hid=MAX_FEATURES / 2, layer_name='hidden1', activation='relu')
+    hidden_layer_2 = HiddenLayer(n_vis=MAX_FEATURES, n_hid=len(actions), layer_name='hidden2', activation='relu')
+    #output_layer = OutputLayer(layer_name='output1', activation='relu')
+    layers = [hidden_layer_1, hidden_layer_2]
     mlp = MLP(layers, discount=discount, learning_rate=learning_rate)
     loss, updates = mlp.get_loss_and_updates(features, action, reward, next_features)
 

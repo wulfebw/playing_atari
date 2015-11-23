@@ -307,7 +307,7 @@ class OpenCVBoundingBoxExtractor(object):
 
     def __call__(self, state, action):
         screen = state["screen"]
-        if len(screen[0][0]) != 3:
+        if len(screen[0][0]) != 3 or screen.shape == (32,32,3):
             return []
 
         if state["objects"] == None:
