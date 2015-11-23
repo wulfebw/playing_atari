@@ -1,5 +1,34 @@
 """
 :description: train an agent to play a game
+
+:development: 
+    :problems:
+    1. this does not work
+    2. the gradients are either too small or do not exist at all
+    3. i have no confidence in the feature extractor 
+    4. i have no confidence in the network implementation
+    5. i have no confidence in the training function
+    
+    :solutions:
+    1. find a way to test 3,4,5 and write tests
+        3. write tests for the feature extractor that emphasize edge cases
+            - ball and paddle touching etc 
+        4. write tests for network
+            - go through the math for a small network example
+            - write a test for that example
+            - need examples testing 
+                - both output possibilities
+                - 0-valued features
+                - negative-valued features
+                - positive-valued features
+                - negative-valued reward
+                - positive-valued reward
+                - multiple, consective updates
+        5. not sure on this one
+    2. additional questions
+        1. shared variables?
+        2. disconnecting gradients?
+        3. why is the output layer import in preventing the argmax error?
 """
 
 import os
@@ -116,7 +145,7 @@ def train(gamepath,
             if action == 0: action = MOVE_RIGHT_ACTION_VALUE
             if action == 1: action = MOVE_LEFT_ACTION_VALUE
             real_action = action
-            reward = ale.act(action)
+            reward += ale.act(action)
             if action == MOVE_RIGHT_ACTION_VALUE: action = 0
             if action == MOVE_LEFT_ACTION_VALUE: action = 1 
 
@@ -132,7 +161,6 @@ def train(gamepath,
             next_state["features"] = next_features
             state = next_state
             
-
             if verbose and counter % 100 == 0:
                 print('reward: {}'.format(reward))
                 print('action: {}'.format(real_action))
@@ -169,9 +197,9 @@ if __name__ == '__main__':
                     n_episodes=10000, 
                     display_screen=False, 
                     record_weights=True, 
-                    reduce_exploration_prob_amount=.0001,
+                    reduce_exploration_prob_amount=.0004,
                     n_frames_to_skip=4,
-                    exploration_prob=.3,
+                    exploration_prob=.5,
                     verbose=True,
                     discount=.99,
                     learning_rate=.01)

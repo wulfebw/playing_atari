@@ -42,7 +42,6 @@ class MLP(object):
         for layer in self.layers:
             features = layer.fprop(features)
             outputs.append(features)
-        self.q_values = outputs[-1]
         return outputs[-1]
 
     def get_loss_and_updates(self, features, action, reward, next_features):
@@ -69,7 +68,7 @@ class MLP(object):
         """
         q_values = self.fprop(features)
         next_q_values = self.fprop(next_features)
-        target = reward + self.discount * T.max(next_q_values)
+        target = reward + self.discount * T.max(next_q_values, axis=0)
         loss = .5 * T.sqr(target - q_values[action])
 
         params = self.get_params()
@@ -129,7 +128,12 @@ class HiddenLayer(object):
         :param state_below: state_below is the state from the layer below this one. 
                             This will originally be the feature vector. 
         """
-        return self.activation(T.dot(state_below, self.W) + self.b)
+        
+        def relu(x, alpha):
+            return T.maximum(x, alpha * x)
+
+        return relu(T.dot(state_below, self.W) + self.b, 0.5)
+        #return self.activation(T.dot(state_below, self.W) + self.b)
 
 class OutputLayer(object):
     """
