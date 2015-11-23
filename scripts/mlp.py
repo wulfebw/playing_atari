@@ -1,5 +1,5 @@
 """
-:description: multilayer perceptron and hidden layer classes
+:description: multilayer perceptron and layer classes
 """
 
 import numpy as np
@@ -88,10 +88,10 @@ class MLP(object):
 
 class HiddenLayer(object):
     """
-    :description: generic network hidden layer.
+    :description: hidden layer performs multiplication X*Theta and then elementwise nonlinearity
     """
 
-    def __init__(self, n_vis, n_hid, layer_name, param_init_range=0.02):
+    def __init__(self, n_vis, n_hid, layer_name, activation, param_init_range=0.02):
         """
         :type n_vis: int 
         :param n_vis: the number of input nodes to this layer (i.e., input space)
@@ -102,6 +102,9 @@ class HiddenLayer(object):
         :type layer_name: string
         :param layer_name: the name used in labeling the parameters of this layer
 
+        :type activation: string
+        :param activation: string denoting activation function. one of {'sigmoid', 'tanh', 'relu'}
+
         :type param_init_range: float
         :param param_init_range: the magnitude of values in which weights should be initialized
         """
@@ -110,7 +113,17 @@ class HiddenLayer(object):
         self.layer_name = layer_name
         self.rng = np.random.RandomState()
         self.param_init_range = param_init_range
-        self.activation = theano.tensor.nnet.sigmoid
+
+        if activation == 'sigmoid':
+            self.activation = theano.tensor.nnet.sigmoid
+        elif activation == 'tanh':
+            self.activation = theano.tensor.tanh
+        elif activation == 'relu':
+            def relu(x):
+                return T.maximum(x, 0)
+            self.activation = relu
+        else: 
+            raise ValueError("activation argument must be one of {sigmoid, tanh, relu}")
 
         init_W = self.rng.uniform(-self.param_init_range, self.param_init_range, (self.n_vis, self.n_hid))
         self.W = theano.shared(value=init_W, name=self.layer_name + '_W', borrow=True)
@@ -128,20 +141,14 @@ class HiddenLayer(object):
         :param state_below: state_below is the state from the layer below this one. 
                             This will originally be the feature vector. 
         """
-        
-        def relu(x, alpha):
-            return T.maximum(x, alpha * x)
-
-        return relu(T.dot(state_below, self.W) + self.b, 0.5)
-        #return self.activation(T.dot(state_below, self.W) + self.b)
+        return self.activation(T.dot(state_below, self.W) + self.b)
 
 class OutputLayer(object):
     """
-    :description: an output layer class that performs a linear operation on the output of the layer
-                  below this one.
+    :description: output layer class does not have parameters, but instead just performs elementwise nonlinearity 
     """
 
-    def __init__(self, layer_name, alpha=0.5):
+    def __init__(self, layer_name, activation):
         """
         :type layer_name: string
         :param layer_name: the name used in labeling the parameters of this layer
@@ -150,9 +157,23 @@ class OutputLayer(object):
         :param alpha: this layer currently acts as a rectified linear unit and alpha is 
                         the parameter of this function which determines how negative the 
                         layer allows its output to be. 0 <= alpha <= 1
+
+        :type activation: string
+        :param activation: string denoting activation function. one of {'sigmoid', 'tanh', 'relu'}
         """
         self.layer_name = layer_name
-        self.alpha = alpha
+
+        if activation == 'sigmoid':
+            self.activation = theano.tensor.nnet.sigmoid
+        elif activation == 'tanh':
+            self.activation = theano.tensor.tanh
+        elif activation == 'relu':
+            def relu(x):
+                return T.maximum(x, 0)
+            self.activation = relu
+        else: 
+            raise ValueError("activation argument must be one of {sigmoid, tanh, relu}")
+        
         self.params = []
 
     def fprop(self, state_below):
@@ -161,5 +182,5 @@ class OutputLayer(object):
                         acts as a rectified linear unit, which takes the elementwise max
                         of the state_below and some scaling of the state_below. 
         """
-        return T.maximum(state_below, self.alpha * state_below)
+        return self.activation(state_below)
         

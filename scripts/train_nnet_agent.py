@@ -101,8 +101,8 @@ def train(gamepath,
     reward = T.dscalar('reward')
     next_features = T.dvector('next_features')
 
-    hidden_layer = HiddenLayer(n_vis=MAX_FEATURES, n_hid=len(actions), layer_name='hl1')
-    output_layer = OutputLayer(layer_name='ol1')
+    hidden_layer = HiddenLayer(n_vis=MAX_FEATURES, n_hid=len(actions), layer_name='hidden1', activation='relu')
+    output_layer = OutputLayer(layer_name='output1', activation='relu')
     layers = [hidden_layer, output_layer]
     mlp = MLP(layers, discount=discount, learning_rate=learning_rate)
     loss, updates = mlp.get_loss_and_updates(features, action, reward, next_features)
@@ -161,10 +161,12 @@ def train(gamepath,
             next_state["features"] = next_features
             state = next_state
             
-            if verbose and counter % 100 == 0:
-                print('reward: {}'.format(reward))
+            if verbose and counter % 500 == 0:
+                print('\nreward: {}'.format(reward))
                 print('action: {}'.format(real_action))
-                print('params: {}'.format([p.eval() for p in mlp.get_params()]))
+                param_info = [(p.eval(), p.name) for p in mlp.get_params()]
+                for (val, name) in param_info:
+                    print('parameter {} value: {}'.format(name, val))
                 print('features: {}'.format(features))
                 print('next_features: {}\n'.format(next_features))
 
