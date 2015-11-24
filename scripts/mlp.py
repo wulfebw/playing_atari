@@ -126,7 +126,7 @@ class HiddenLayer(object):
             self.activation = theano.tensor.tanh
         elif activation == 'relu':
             def relu(x):
-                return T.maximum(x, 0)
+                return T.maximum(x, .1 * x)
             self.activation = relu
         else: 
             raise ValueError("activation argument must be one of {sigmoid, tanh, relu}")

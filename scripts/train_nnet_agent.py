@@ -50,8 +50,6 @@ import learning_agents
 from mlp import MLP, HiddenLayer, OutputLayer
 
 MAX_FEATURES = 8
-MOVE_RIGHT_ACTION_VALUE = 3
-MOVE_LEFT_ACTION_VALUE = 4
 
 def train(gamepath, 
           n_episodes=10000, 
@@ -59,7 +57,7 @@ def train(gamepath,
           record_weights=True, 
           reduce_exploration_prob_amount=True,
           n_frames_to_skip=4,
-          exploration_prob=.3,
+          exploration_prob=.5,
           verbose=True,
           discount=.99,
           learning_rate=.01):
@@ -94,7 +92,8 @@ def train(gamepath,
         ale.setBool('display_screen', True)
 
     ale.loadROM(gamepath)
-    actions = np.array([0,1]) # ale.getMinimalActionSet()
+    real_actions = ale.getMinimalActionSet()
+    actions = np.arange(len(real_actions))
 
     features = T.dvector('features')
     action = T.lscalar('action')
@@ -132,23 +131,22 @@ def train(gamepath,
         state = { "screen" : screen, "objects" : None, "prev_objects": None, "features": np.zeros(MAX_FEATURES)}
         
         while not ale.game_over():
-            counter += 1
             if counter % n_frames_to_skip != 0:
-                reward += ale.act(action)
+                print real_actions[action]
+                counter += 1
+                reward += ale.act(real_actions[action])
                 continue
+                
+            counter += 1
 
             features = state["features"]
             if random.random() < exploration_prob: 
                 action = random.choice(actions)
             else:
                 action = T.argmax(mlp.fprop(features)).eval()
-            if action == 0: action = MOVE_RIGHT_ACTION_VALUE
-            if action == 1: action = MOVE_LEFT_ACTION_VALUE
-            real_action = action
-            reward += ale.act(action)
-            if action == MOVE_RIGHT_ACTION_VALUE: action = 0
-            if action == MOVE_LEFT_ACTION_VALUE: action = 1 
-
+            
+            print real_actions[action]
+            reward += ale.act(real_actions[action])
             if ale.lives() < lives: 
                 lives = ale.lives()
                 reward -= 1
@@ -163,7 +161,7 @@ def train(gamepath,
             
             if verbose and counter % 500 == 0:
                 print('\nreward: {}'.format(reward))
-                print('action: {}'.format(real_action))
+                print('action: {}'.format(real_actions[action]))
                 param_info = [(p.eval(), p.name) for p in mlp.get_params()]
                 for (val, name) in param_info:
                     print('parameter {} value: {}'.format(name, val))
@@ -197,7 +195,7 @@ if __name__ == '__main__':
     gamepath = os.path.join(base_dir, game)
     rewards = train(gamepath, 
                     n_episodes=10000, 
-                    display_screen=False, 
+                    display_screen=True, 
                     record_weights=True, 
                     reduce_exploration_prob_amount=.0004,
                     n_frames_to_skip=4,
