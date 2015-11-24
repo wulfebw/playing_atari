@@ -38,7 +38,10 @@ def load_weights():
 
 def save_model(model, model_filename):
     f = file(model_filename, 'wb')
-    cPickle.dump(model, f, protocol=cPickle.HIGHEST_PROTOCOL)
+    try:
+        cPickle.dump(model, f, protocol=cPickle.HIGHEST_PROTOCOL)
+    except:
+        print('could not save model')
     f.close()
 
 def load_model(model_filename):

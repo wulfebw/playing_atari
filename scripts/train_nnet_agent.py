@@ -111,7 +111,7 @@ def train(gamepath,
                     theano.Param(action, default=0),
                     theano.Param(reward, default=0),
                     theano.Param(next_features, default=np.zeros(MAX_FEATURES))],
-                    [loss],
+                    outputs=loss,
                     updates=updates,
                     mode='FAST_RUN')
     rewards = []
@@ -126,17 +126,17 @@ def train(gamepath,
         counter = 0
         reward = 0
         loss = 0
+        previous_param_0 = None
         lives = ale.lives()
         screen = np.zeros((preprocessor.dim, preprocessor.dim, preprocessor.channels))
         state = { "screen" : screen, "objects" : None, "prev_objects": None, "features": np.zeros(MAX_FEATURES)}
         
         while not ale.game_over():
             if counter % n_frames_to_skip != 0:
-                print real_actions[action]
                 counter += 1
                 reward += ale.act(real_actions[action])
                 continue
-                
+
             counter += 1
 
             features = state["features"]
@@ -145,7 +145,6 @@ def train(gamepath,
             else:
                 action = T.argmax(mlp.fprop(features)).eval()
             
-            print real_actions[action]
             reward += ale.act(real_actions[action])
             if ale.lives() < lives: 
                 lives = ale.lives()
@@ -155,18 +154,26 @@ def train(gamepath,
             next_screen = preprocessor.preprocess(next_screen)
             next_state = {"screen": next_screen, "objects": None, "prev_objects": state["objects"]}
             next_features = feature_extractor(next_state)
-            loss += train_model(features, action, reward, next_features)[0]
+            loss += train_model(features, action, reward, next_features)
             next_state["features"] = next_features
             state = next_state
             
-            if verbose and counter % 500 == 0:
-                print('\nreward: {}'.format(reward))
-                print('action: {}'.format(real_actions[action]))
+            if verbose and counter % 251 == 0:
+                print('*' * 15 + ' training information ' + '*' * 15) 
+                print('reward: \t{}'.format(reward))
+                print('action: \t{}'.format(real_actions[action]))
                 param_info = [(p.eval(), p.name) for p in mlp.get_params()]
-                for (val, name) in param_info:
-                    print('parameter {} value: {}'.format(name, val))
-                print('features: {}'.format(features))
-                print('next_features: {}\n'.format(next_features))
+                for index, (val, name) in enumerate(param_info):
+                    if previous_param_0 is None and index == 0:
+                        previous_param_0 = val
+                    print('parameter {} value: \n{}'.format(name, val))
+                    if index == 0:
+                        diff = val - previous_param_0
+                        print('difference from previous param {}: \n{}'.format(name, diff))
+                print('features: \t{}'.format(features))
+                print('next_features: \t{}'.format(next_features))
+                print('*' * 52)
+                print('\n')
 
             total_reward += reward
             reward = 0
@@ -179,7 +186,7 @@ def train(gamepath,
 
         if episode != 0 and episode % 50 == 0 and record_weights:
             file_utils.save_rewards(rewards)
-            file_utils.save_model(mlp, 'weights/mlp_2.pkl')
+            file_utils.save_model(mlp.layers[0], 'weights/hidden.pkl')
 
         if exploration_prob > .1:
             exploration_prob -= reduce_exploration_prob_amount
@@ -195,7 +202,7 @@ if __name__ == '__main__':
     gamepath = os.path.join(base_dir, game)
     rewards = train(gamepath, 
                     n_episodes=10000, 
-                    display_screen=True, 
+                    display_screen=False, 
                     record_weights=True, 
                     reduce_exploration_prob_amount=.0004,
                     n_frames_to_skip=4,
