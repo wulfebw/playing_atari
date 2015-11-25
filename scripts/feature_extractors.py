@@ -13,6 +13,10 @@ import cv2
 import copy
 import operator
 import itertools
+from collections import Counter
+from copy import deepcopy
+from sklearn.cluster import DBSCAN
+from sklearn.preprocessing import StandardScaler
 
 class CoordinateExtractor(object):
 
