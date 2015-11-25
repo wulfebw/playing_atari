@@ -157,7 +157,7 @@ def train(gamepath,
             file_utils.save_model(mlp, 'weights/mlp_2.pkl')
             print("best reward!: {}".format(total_reward))
 
-        if episode != 0 and episode % 50 == 0 and record_weights:
+        if episode != 0 and episode % 25 == 0 and record_weights:
             file_utils.save_rewards(rewards)
             file_utils.save_model(mlp.layers[0], 'weights/hidden.pkl')
 
@@ -182,4 +182,4 @@ if __name__ == '__main__':
                     exploration_prob=.5,
                     verbose=True,
                     discount=.99,
-                    learning_rate=.01)
+                    learning_rate=.05)

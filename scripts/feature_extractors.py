@@ -312,7 +312,10 @@ class OpenCVBoundingBoxExtractor(object):
 
         if state["objects"] == None:
             self.found_centers = []
-            state["objects"] = self.get_bounding_boxes(screen)
+            try:
+                state["objects"] = self.get_bounding_boxes(screen)
+            except: 
+                return []
 
         centers = []
         for (x,w), (y,h) in state["objects"]:
@@ -446,8 +449,8 @@ class NNetOpenCVBoundingBoxExtractor(object):
 
         features = []
         for (cx, cy), (dx, dy) in zip(centers, position_derivatives):
-            features.append(cx / self.max_x)
-            features.append(cy / self.max_y)
+            features.append(cx / 1 )#self.max_x)
+            features.append(cy / 1 )#self.max_y)
             features.append(dx)
             features.append(dy)
 
