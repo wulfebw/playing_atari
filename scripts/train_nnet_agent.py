@@ -1,34 +1,5 @@
 """
 :description: train an agent to play a game
-
-:development: 
-    :problems:
-    1. this does not work
-    2. the gradients are either too small or do not exist at all
-    3. i have no confidence in the feature extractor 
-    4. i have no confidence in the network implementation
-    5. i have no confidence in the training function
-    
-    :solutions:
-    1. find a way to test 3,4,5 and write tests
-        3. write tests for the feature extractor that emphasize edge cases
-            - ball and paddle touching etc 
-        4. write tests for network
-            - go through the math for a small network example
-            - write a test for that example
-            - need examples testing 
-                - both output possibilities
-                - 0-valued features
-                - negative-valued features
-                - positive-valued features
-                - negative-valued reward
-                - positive-valued reward
-                - multiple, consective updates
-        5. not sure on this one
-    2. additional questions
-        1. shared variables?
-        2. disconnecting gradients?
-        3. why is the output layer import in preventing the argmax error?
 """
 
 import os
@@ -100,9 +71,10 @@ def train(gamepath,
     reward = T.dscalar('reward')
     next_features = T.dvector('next_features')
 
-    hidden_layer = HiddenLayer(n_vis=MAX_FEATURES, n_hid=len(actions), layer_name='hidden', activation='relu')
-    #output_layer = OutputLayer(layer_name='output1', activation='relu')
-    layers = [hidden_layer]
+    hidden_layer_1 = HiddenLayer(n_vis=MAX_FEATURES, n_hid=MAX_FEATURES / 2, layer_name='hidden1', activation='relu')
+    hidden_layer_2 = HiddenLayer(n_vis=MAX_FEATURES / 2, n_hid=len(actions), layer_name='hidden2', activation='relu')
+    # output_layer = OutputLayer(layer_name='output1', activation='relu')
+    layers = [hidden_layer_1, hidden_layer_2]
     mlp = MLP(layers, discount=discount, learning_rate=learning_rate)
     loss, updates = mlp.get_loss_and_updates(features, action, reward, next_features)
 
@@ -158,8 +130,9 @@ def train(gamepath,
             next_state["features"] = next_features
             state = next_state
             
-            if verbose and counter % 251 == 0:
+            if verbose and counter % 53 == 0:
                 print('*' * 15 + ' training information ' + '*' * 15) 
+                print('episode: {}'.format(episode))
                 print('reward: \t{}'.format(reward))
                 print('action: \t{}'.format(real_actions[action]))
                 param_info = [(p.eval(), p.name) for p in mlp.get_params()]
