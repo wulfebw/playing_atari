@@ -27,8 +27,8 @@ class CoordinateExtractor(object):
         bot = screen[.9 * screen.shape[0]:,:]
         ball_coords = np.divide(np.unravel_index(top.argmax(), top.shape), map(float, top.shape))
         block_coords = np.divide(np.unravel_index(bot.argmax(), bot.shape), map(float, bot.shape))
-        features = [('ball_y', ball_coords[0]), 
-                    ('ball_x', ball_coords[1]), 
+        features = [('ball_y', ball_coords[0]),
+                    ('ball_x', ball_coords[1]),
                     (('block_x', action), block_coords[1]),
                     ('prev_ball_y', self.prev_ball_coords[0]),
                     ('prev_ball_x', self.prev_ball_coords[1]),
@@ -54,7 +54,7 @@ class BoundingBoxExtractor(object):
             screenS += "%3d " % y
             screenS += "\n"
         print screenS
-                
+
     def __init__(self):
         self.known_objects = None
         self.object_id_counter = 0
@@ -119,7 +119,7 @@ class BoundingBoxExtractor(object):
                 to_explore.put(d)
         #print "found object with color: " + str(object_val) + " size: " + str(len(object_coords)) + " min: " + str((min_x, min_y)) + " max: " + str((max_x,max_y))
         return (((min_x, min_y), (max_x, max_y)), tuple(object_coords))
-        
+
     def get_rgb_int_val(self, r, g, b):
         return (r << 16) | (g << 8) | (b)
 
@@ -159,8 +159,8 @@ class BoundingBoxExtractor(object):
             total_len = 0
             for sample in known_object_sample:
                 total_len += len(sample)
-            avg_len = total_len / len(known_object_sample)  
-            is_same = (abs(len(object_coords) - avg_len) < size_test_threshold) 
+            avg_len = total_len / len(known_object_sample)
+            is_same = (abs(len(object_coords) - avg_len) < size_test_threshold)
             if is_same:
                 self.resevoir_sample(known_object_sample, object_coords)
             return is_same
@@ -179,7 +179,7 @@ class BoundingBoxExtractor(object):
             print "no match; classifying new object: " + str(new_obj_id)
             self.known_objects[new_obj_id] = [ box_and_object[1] ]
             classified_id = new_obj_id
-        return classified_id    
+        return classified_id
 
     def classify_objects(self, boxes_and_objects):
         classified_boxes_and_objects = []
@@ -189,7 +189,7 @@ class BoundingBoxExtractor(object):
                 new_obj_id = self.object_id_counter
                 self.object_id_counter += 1
                 self.known_objects[new_obj_id] = [ box_and_object[1] ]
-                classified_boxes_and_objects.append((new_obj_id, box_and_object[0])) 
+                classified_boxes_and_objects.append((new_obj_id, box_and_object[0]))
         else:
             for box_and_object in boxes_and_objects:
                 classified_boxes_and_objects.append((self.classify_object(box_and_object), box_and_object[0]))
@@ -229,7 +229,7 @@ class BoundingBoxExtractor(object):
             objects_and_boxes = self.classify_objects(boxes_and_objects)
             state["objects"] = objects_and_boxes
             if self.VERBOSE:
-                print "Locating objects took: " + str(int(round(time.time() * 1000)) - millis) 
+                print "Locating objects took: " + str(int(round(time.time() * 1000)) - millis)
                 print "objects: " + str(state["objects"])
                 print_features = True
         features = []
@@ -245,7 +245,7 @@ class BoundingBoxExtractor(object):
             for j in range(i + 1, len(state["objects"])):
                 object_and_box2 = state["objects"][j]
                 pairwise_name = str(i) + "-" + str(j)
-                
+
                 mid_x_1 = ((object_and_box1[1])[0][0] + (object_and_box1[1])[1][0])/2
                 mid_x_2 = ((object_and_box2[1])[0][0] + (object_and_box2[1])[1][0])/2
                 mid_y_1 = ((object_and_box1[1])[0][1] + (object_and_box1[1])[1][1])/2
@@ -314,7 +314,7 @@ class OpenCVBoundingBoxExtractor(object):
             self.found_centers = []
             try:
                 state["objects"] = self.get_bounding_boxes(screen)
-            except: 
+            except:
                 return []
 
         centers = []
@@ -457,6 +457,202 @@ class NNetOpenCVBoundingBoxExtractor(object):
         while len(features) < self.max_features:
             features.append(0)
         return features[:self.max_features]
+
+
+class TrackingClassifyingContourExtractor(object):
+
+    def __init__(self, max_features=100, debug=False):
+
+        #used for subimg storing for debugging
+        self.iter = 0
+        self.debug = debug
+        if self.debug:
+            os.system('rm -r subimgs/*')
+
+        #Cap output features CURRENTLY NOT IMPLEMENTED
+        self.max_features = max_features
+
+        #Storage of old features for consistent matching
+        self.storedFeatures = []
+        self.maxStoreSize = 200
+
+        #Ensure you store the previous features
+        self.prevFeatures = []
+
+        #The classification algorithm used to cluster features
+        #Must have a .fit() method
+        #Must have a .labels_ member variable
+        self.classifier = DBSCAN(min_samples=1)
+
+        #We need to store some number of examples of each label found so far
+        self.MAX_FEATURE_EXAMPLES = 10
+        self.featureExamples = {}
+        self.numExampleFeatures = 0
+
+        #We need to track how many unique instances of each label we've seen for tracking
+        self.labelCounts = Counter()
+
+        #Need to store the previous position and objectId of each feature with a given label
+        self.oldFeatureStates = {}
+
+
+    def __call__(self, state, action):
+        start = time.time()
+        screen = state["screen"]
+        feats,positions = self.getCurrentFeatures(screen)  #extract raw features about contours from screen
+        self.reclassify() #perform clustering on all stored features (includes new features)
+        self.consistency() #Ensure labels are consistent from frame to frame
+
+        #Extract current labels
+        if self.numExampleFeatures is not 0:
+            labels = self.classifier.labels_[-(len(feats)+self.numExampleFeatures):-self.numExampleFeatures]
+        else:
+            labels = self.classifier.labels_[-(len(feats)):]
+
+        #Add new examples to example tracker
+        self.addExamples(feats,labels)
+
+        #Get output features by tracking vs previous frame
+        returnFeatures = self.trackFeatures(labels,positions)
+        print returnFeatures
+        print labels
+        prevFeatures = feats
+        end = time.time()
+        print end-start
+        return
+
+    def getCurrentFeatures(self,screen):
+        img = screen #store screen in image
+        img2 = deepcopy(img)  #create copy of screen before modifying it
+        imgray = cv2.cvtColor(img,cv2.COLOR_BGR2GRAY) #create grayscale screen for testing
+        edges = cv2.Canny(img, 20, 100)  #perform edge detection
+
+        #The next step closes all detected edges
+        kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (6, 6))
+        closed = cv2.morphologyEx(edges, cv2.MORPH_CLOSE, kernel)
+
+        #detect contours from modified image
+        contours = cv2.findContours(closed,cv2.RETR_TREE,cv2.CHAIN_APPROX_SIMPLE)[1]
+        feats = []
+        positions = []
+        if self.debug:
+            self.iter = self.iter + 1
+        for idx,cont in enumerate(contours):
+            M = cv2.moments(cont)
+            x = int(M['m10']/M['m00']) #centroid x
+            y = int(M['m01']/M['m00']) #centroid y
+            positions.append((x,y))  #add position of feature to structure
+
+            mask = np.zeros(imgray.shape,np.uint8) #create mask
+            cv2.drawContours(mask,[cont],0,255,-1) #add contour to mask
+            newImg =  cv2.bitwise_and(img2,img2,mask = mask)  #create new image only containing contour
+            mean_val = cv2.mean(img2,mask = mask) #get average color of the contour from new image
+
+            #Now we append the feature list that is used for classification
+            feats.append( [len(cont),cv2.arcLength(cont,True),mean_val[0],mean_val[1],mean_val[2],cv2.contourArea(cont)])
+
+            #if debugging, output screen captures of each feature at each timestep
+            if self.debug:
+                outname = 'subimgs/test{}-{}.png'.format(self.iter,idx)
+                cv2.imwrite(outname,newImg)
+
+        #finally, store old features for better classification
+        for feat in feats:
+            self.storedFeatures.append(feat)
+        if len(feats)+len(self.prevFeatures) > self.maxStoreSize:
+            self.maxStoreSize = len(feats) + len(self.prevFeatures)
+        if len(self.storedFeatures) > self.maxStoreSize:
+            self.storedFeatures = self.storedFeatures[-self.maxStoreSize:]
+        return (feats,positions)
+
+    def reclassify(self):  #Refit to most current data
+        feats = deepcopy(self.storedFeatures)
+        for key in self.featureExamples:  #Add feature examples to the end so we can find labels later
+            for feat in self.featureExamples[key]:
+                feats.append(feat)
+        feats = np.array(feats)
+        feats = StandardScaler().fit_transform(feats)
+        self.classifier.fit(feats)
+        return
+
+    def consistency(self): #Ensure feautres have constant labels over different timesteps
+        newLabels = self.classifier.labels_[-self.numExampleFeatures:]  #Get the labels given in the most recent round
+        idx = 0
+        relabelings = {}
+        for key in self.featureExamples:  #for each previously seen label
+            newLabel = newLabels[idx:(idx+len(self.featureExamples[key]))] #find the labels given to the example features
+            data = Counter(newLabel)
+            newMode = data.most_common(1)[0][0] #find most common new label given
+            if newMode is not key: #New iteration assigned different label
+                relabelings[newMode] = key
+            else: #new iteration assigned same label
+                relabelings[key] = key
+            idx += len(self.featureExamples[key])
+        newLabels = 0
+        for idx,oldCat in enumerate(self.classifier.labels_): #for each label assigned in the latest go
+            # print relabelings
+            if oldCat in relabelings: #if we have a relabeling defined, relabel
+                self.classifier.labels_[idx] = relabelings[self.classifier.labels_[idx]]
+            else: #Object is new and need a new label accordingly
+                self.classifier.labels_[idx] = len(self.featureExamples)+newLabels
+                relabelings[oldCat] = len(self.featureExamples)+newLabels
+                newLabels +=1
+        return
+
+    def addExamples(self,feats,labels):  #add examples if we need new ones
+        for idx,feat in enumerate(feats):
+            label = labels[idx]
+            if label in self.featureExamples:
+                if (len(self.featureExamples[label])) < self.MAX_FEATURE_EXAMPLES:
+                    self.featureExamples[label].append(feat)
+                    self.numExampleFeatures+=1
+            else:
+                self.featureExamples[label] = [feat]
+                self.numExampleFeatures+=1
+
+    #Returns id, dx, dy
+    def trackFeatures(self,labels,positions):
+        returnFeatures = []
+        featureStates = {}
+        for idx,label in enumerate(labels): #create dict between a label and all positions that label was found
+            if label in featureStates:
+                featureStates[label].append(positions[idx])
+            else:
+                featureStates[label] = [positions[idx]]
+
+        newPids = {}
+        for label in featureStates:  #for each label on the current screen
+            positions = featureStates[label]
+            if label in self.oldFeatureStates:
+                oldPids = self.oldFeatureStates[label]
+            else:
+                oldPids = []
+            for oldPos,oldId in oldPids:  #for each position and objectid on the previous screen with the same label
+                minDist = float("inf")
+                for newPos in positions:  #find the new object with that label that is the closest to the old one
+                    dist = math.sqrt((newPos[0]-oldPos[0])**2+(newPos[1]-oldPos[1])**2)
+                    if dist < minDist:
+                        closest = newPos
+                        if dist is 0:
+                            break
+                        minDist = dist
+                positions.remove(closest)  #once found, remove it from the candidate list
+                if label in newPids:
+                    newPids[label].append((closest,oldId))  #store current position/objectid pair
+                else:
+                    newPids[label] = [(closest,oldId)]
+
+                returnFeatures.append((label,oldId,closest[0],closest[1],newPos[0]-oldPos[0],newPos[1]-oldPos[1])) #append actual feature
+            for pos in positions: #for labeled objects that didnt get matched to the previous frame
+                objId = self.labelCounts[label]
+                self.labelCounts[label]+=1
+                if label in newPids:
+                    newPids[label].append((pos,objId))  #store current position/objectid pair
+                else:
+                    newPids[label] = [(pos,objId)]
+                returnFeatures.append(((label,objId,pos[0],pos[1],0,0))) #append actual feature with 0 derivatives since its a new object
+        self.oldFeatureStates = newPids
+        return returnFeatures
 
 class IdentityFeatureExtractor(object):
     def __call__(self, state, action):
