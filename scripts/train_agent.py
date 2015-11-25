@@ -103,7 +103,7 @@ def train_agent(gamepath, agent, n_episodes=10000, display_screen=False):
 	ale.loadROM(gamepath)
 
 	rewards = []
-	best_reward = 2
+	best_reward = -1
 	# train the agent
 	for episode in xrange(n_episodes):
 		total_reward = 0
@@ -172,9 +172,10 @@ def train_agent(gamepath, agent, n_episodes=10000, display_screen=False):
 
 		if episode != 0 and episode % 1000 == 0:
 			file_utils.save_weights(agent.weights)
-
+		if episode % 100 == 0:
+			print("Avg reward: {}".format(float(sum(rewards))/len(rewards) if len(rewards) > 0 else float('nan')))
 		if agent.explorationProb > .1:
-			agent.explorationProb -= .02
+			agent.explorationProb -= .0004
 		rewards.append(total_reward)
 		print('episode: {} ended with score: {}'.format(episode, total_reward))
 		ale.reset_game()

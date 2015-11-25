@@ -320,7 +320,7 @@ class OpenCVBoundingBoxExtractor(object):
 		centers = []
 		for (x,w), (y,h) in state["objects"]:
 			centers.append(get_center(x,w,y,h))
-		centers = sorted(centers, key=lambda x: x[1])
+		centers = sorted(centers, key=lambda x: x[1]) # what happens when ball gets below paddle? idx depends on order
 
 		prev_centers = []
 		if state["prev_objects"] is not None:
@@ -332,7 +332,9 @@ class OpenCVBoundingBoxExtractor(object):
 		if len(centers) == len(prev_centers):
 			for c, pc in zip(centers, prev_centers):
 				derivative_pos.append(tuple(map(operator.sub, c, pc)))
-
+		return self.get_features_from_centers_derivatives(state, action, centers, derivative_pos)
+		
+	def get_features_from_centers_derivatives(self, state, action, centers, derivative_pos):
 		features = []
 		prev_action_name = 'prev-action-{}'.format(state["prev_action"])
 		action_name = 'action-{}'.format(action)
@@ -340,16 +342,18 @@ class OpenCVBoundingBoxExtractor(object):
 		features.append((action_name, 1))
 		features.append(((action_name, prev_action_name), 1))
 
+		bucket_size = 1
 		pos_names = []
 		# base position feature
 		for idx, (cx, cy) in enumerate(centers):
-			name_x = 'object-{}-x-{}'.format(idx, round(cx, -1))
-			name_y = 'object-{}-y-{}'.format(idx, round(cy, -1))
+			name_x = 'object-{}-x-{}'.format(idx, cx/bucket_size)
+			name_y = 'object-{}-y-{}'.format(idx, cy/bucket_size)
 			pos_names.append(name_x)
 			pos_names.append(name_y)
 			features.append((name_x, 1))
 			features.append((name_y, 1))
 			features.append(((action_name, name_x), 1))
+			features.append(((action_name, name_y), 1))
 
 		# derivatives
 		deriv_names = []
@@ -364,8 +368,20 @@ class OpenCVBoundingBoxExtractor(object):
 			features.append((name_y, 1))
 			features.append(((name_x, action_name), 1))
 			features.append(((name_x, prev_action_name), 1))
-
-
+			# cross with current locations
+			diff_bucket_size = 5
+			for idx2, (cx, cy) in enumerate(centers):
+				if idx2 != idx:
+					other_x_pos = None
+					for idx3, (cx2, cy2) in enumerate(centers):
+						if idx3 == idx:
+							other_x_pos = cx2
+					name_cross_deriv_pos = 'objects-{}-{}-dx0-{}-dy0-{}-x1-{}'.format(idx,idx2,dx,dy,cx)
+					name_cross_deriv_diff = 'objects-{}-{}-dx0-{}-dy0-{}-xdiff-{}'.format(idx,idx2,dx,dy,(cx - other_x_pos)/diff_bucket_size)
+					name_cross_deriv_pos_diff = 'objects-{}-{}-x0-{}-dx0-{}-dy0-{}-xdiff-{}'.format(idx,idx2,other_x_pos,dx,dy,(cx - other_x_pos)/diff_bucket_size)
+					features.append(((name_cross_deriv_pos, action_name),1))
+					features.append(((name_cross_deriv_diff, action_name),1))
+					features.append(((name_cross_deriv_pos_diff, action_name),1))
 		# differences
 		diff_names = []
 		for (cx0, cy0), (cx1, cy1) in zip(centers, centers[1:]):
@@ -377,9 +393,31 @@ class OpenCVBoundingBoxExtractor(object):
 			features.append((diff_y, 1))
 			features.append(((diff_x, prev_action_name), 1))
 			features.append(((diff_x, action_name), 1))
-
 		return features
 
 class IdentityFeatureExtractor(object):
 	def __call__(self, state, action):
 		return [(k, v) for k, v in state.iteritems()]
+		
+class MockBoundingBoxExtractor(OpenCVBoundingBoxExtractor):
+	def __init__(self, ball_coords, prev_ball_coords):
+		super(MockBoundingBoxExtractor, self).__init__()
+		self._prev_ball = prev_ball_coords
+		self._ball = ball_coords
+		self._paddle_x = 50
+		self._paddle_y = 5
+		self._paddle_width = 13
+		self._paddle_height = 1
+		
+	def get_features_paddle_x(self, state, actions, paddle_x):
+		all_features = []
+		self._paddle_x = paddle_x
+		paddle_obj = ((self._paddle_x, self._paddle_y), (self._paddle_x + self._paddle_width, self._paddle_y + self._paddle_height))
+		state["prev_objects"] = [paddle_obj, self._prev_ball]
+		state["objects"] = [paddle_obj, self._ball]
+		state["screen"] = np.zeros((1,1,3))
+		for action in actions:
+			state["prev_action"] = action
+			all_features.append(self(state, action))		
+		return all_features
+		

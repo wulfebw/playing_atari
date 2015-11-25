@@ -13,13 +13,17 @@ def save_weights(weights):
 		pickle.dump(weights, f)
 
 def load_weights():
-	weight_files = sorted(os.listdir('weights'), reverse=True)
-	if weight_files:
-		input_filename = os.path.join('weights', weight_files[0])
+	print "loading weights..."
+	use_latest_weights = False
+	if (use_latest_weights):
+		weight_files = sorted(os.listdir('weights'), reverse=True)
+		if weight_files:
+			input_filename = os.path.join('weights', weight_files[0])
+		else:
+			return None
 	else:
-		return None
-	print input_filename
-
+		input_filename = os.path.join('weights', '1bucket-newest2.pkl')
+	print "Loading weight from file: " + input_filename
 	weights = None
 	try:
 		with open(input_filename, 'rb') as f:
