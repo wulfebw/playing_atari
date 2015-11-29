@@ -78,7 +78,7 @@ class MLP(object):
         
         params = self.get_params()
         l2norm = T.sum([(param ** 2).sum() for param in params if 'b' not in param.name])
-        loss = .5 * T.sqr(target - q_values[action]) + l2norm
+        loss = .5 * T.sqr(target - q_values[action]) + l2norm * 0.00001
         gparams = T.grad(loss, params)
 
         updates = [(param, param - self.learning_rate * gparam) for param, gparam in zip(params, gparams)]

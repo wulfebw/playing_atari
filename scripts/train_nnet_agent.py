@@ -1,5 +1,12 @@
 """
 :description: train an agent to play a game
+
+:todo:
+1. static target function
+2. adaptive learning rate 
+3. gradient checking
+4. replay memory
+5. inspect behavior after training for a long time and see what it's doing (i.e. get model saving to work)
 """
 
 import os
@@ -31,7 +38,8 @@ def train(gamepath,
           exploration_prob=.5,
           verbose=True,
           discount=.99,
-          learning_rate=.01):
+          learning_rate=.01,
+          load_weights=False):
     """
     :description: trains an agent to play a game 
 
@@ -71,9 +79,15 @@ def train(gamepath,
     reward = T.dscalar('reward')
     next_features = T.dvector('next_features')
 
-    hidden_layer_1 = HiddenLayer(n_vis=MAX_FEATURES, n_hid=MAX_FEATURES / 2, layer_name='hidden1', activation='relu')
-    hidden_layer_2 = HiddenLayer(n_vis=MAX_FEATURES / 2, n_hid=len(actions), layer_name='hidden2', activation='relu')
-    # output_layer = OutputLayer(layer_name='output1', activation='relu')
+    if load_weights:
+        hidden_layer_1 = file_utils.load_model('weights/hidden0_4000_tanh.pkl')
+        hidden_layer_2 = file_utils.load_model('weights/hidden1_4000_tanh.pkl')
+    else:
+        hidden_layer_1 = HiddenLayer(n_vis=MAX_FEATURES, n_hid=MAX_FEATURES, layer_name='hidden1', activation='relu')
+        hidden_layer_2 = HiddenLayer(n_vis=MAX_FEATURES, n_hid=len(actions), layer_name='hidden2', activation='relu')
+    
+
+    #output_layer = OutputLayer(layer_name='output1', activation='relu')
     layers = [hidden_layer_1, hidden_layer_2]
     mlp = MLP(layers, discount=discount, learning_rate=learning_rate)
     loss, updates = mlp.get_loss_and_updates(features, action, reward, next_features)
@@ -88,7 +102,7 @@ def train(gamepath,
                     mode='FAST_RUN')
     rewards = []
     losses = []
-    best_reward = 0
+    best_reward = 4
     preprocessor = screen_utils.RGBScreenPreprocessor()
     feature_extractor = feature_extractors.NNetOpenCVBoundingBoxExtractor(MAX_FEATURES)
     for episode in xrange(n_episodes):
@@ -116,7 +130,7 @@ def train(gamepath,
                 action = random.choice(actions)
             else:
                 action = T.argmax(mlp.fprop(features)).eval()
-            
+            print(real_actions[action])
             reward += ale.act(real_actions[action])
             if ale.lives() < lives: 
                 lives = ale.lives()
@@ -154,12 +168,13 @@ def train(gamepath,
         rewards.append(total_reward)
         if total_reward > best_reward and record_weights:
             best_reward = total_reward
-            file_utils.save_model(mlp, 'weights/mlp_2.pkl')
+            file_utils.save_model(mlp, 'weights/mlp_{}.pkl'.format(episode))
             print("best reward!: {}".format(total_reward))
 
-        if episode != 0 and episode % 25 == 0 and record_weights:
+        if episode != 0 and episode % 1000 == 0 and record_weights:
             file_utils.save_rewards(rewards)
-            file_utils.save_model(mlp.layers[0], 'weights/hidden.pkl')
+            file_utils.save_model(mlp.layers[0], 'weights/hidden0_{}.pkl'.format(episode))
+            file_utils.save_model(mlp.layers[1], 'weights/hidden1.pkl'.format(episode))
 
         if exploration_prob > .1:
             exploration_prob -= reduce_exploration_prob_amount
@@ -175,11 +190,12 @@ if __name__ == '__main__':
     gamepath = os.path.join(base_dir, game)
     rewards = train(gamepath, 
                     n_episodes=10000, 
-                    display_screen=False, 
-                    record_weights=True, 
-                    reduce_exploration_prob_amount=.0004,
+                    display_screen=True, 
+                    record_weights=False, 
+                    reduce_exploration_prob_amount=.000001,
                     n_frames_to_skip=4,
-                    exploration_prob=.5,
-                    verbose=True,
-                    discount=.99,
-                    learning_rate=.05)
+                    exploration_prob=0.2,
+                    verbose=False,
+                    discount=.999,
+                    learning_rate=.0001,
+                    load_weights=True)
