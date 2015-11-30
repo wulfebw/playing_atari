@@ -6,6 +6,7 @@
         https://github.com/spragunr/deep_q_rl
 """
 import sys
+import copy
 
 import numpy as np
 import theano
@@ -28,10 +29,11 @@ class MLP(object):
         :param learning_rate: the learning rate scales the update value
         """
         self.layers = layers
+        self.frozen_layers = copy.deepcopy(layers)
         self.discount = discount
         self.learning_rate = learning_rate
 
-    def fprop(self, features):
+    def fprop(self, features, freeze=False):
         """
         :description: forward propagates the input through all layers of the network
 
@@ -43,8 +45,13 @@ class MLP(object):
                     (i.e., the Q values for each action stored in a vector - so rval[0] would be 
                     the Q value for action 0). 
         """
+        if freeze:
+            layers = self.frozen_layers
+        else:
+            layers = self.layers
+
         outputs = []
-        for layer in self.layers:
+        for layer in layers:
             features = layer.fprop(features)
             outputs.append(features)
         return outputs[-1]
@@ -72,24 +79,29 @@ class MLP(object):
         :param rval updates: tuples mapping a parameter to its update resulting from this iteration
         """
         q_values = self.fprop(features)
-        next_q_values = self.fprop(next_features)
+        next_q_values = self.fprop(next_features, freeze=True)
         next_q_values = theano.gradient.disconnected_grad(next_q_values)
         target = reward + self.discount * T.max(next_q_values)
         
         params = self.get_params()
-        l2norm = T.sum([(param ** 2).sum() for param in params if 'b' not in param.name])
-        loss = .5 * T.sqr(target - q_values[action]) + l2norm * 0.00001
+        #l2norm = T.sum([(param ** 2).sum() for param in params if 'b' not in param.name])
+        loss = .5 * T.sqr(target - q_values[action]) #+ l2norm * 0.000
         gparams = T.grad(loss, params)
 
         updates = [(param, param - self.learning_rate * gparam) for param, gparam in zip(params, gparams)]
         return (loss, updates)
 
-    def get_params(self):
+    def get_params(self, freeze=False):
         """
         :description: return a list of the parameters from each layer of this network (1-d list)
         """
+        if freeze:
+            layers = self.frozen_layers
+        else:
+            layers = self.layers
+
         params = []
-        for layer in self.layers:
+        for layer in layers:
             params += layer.params
         return params
 
@@ -176,8 +188,12 @@ class OutputLayer(object):
             self.activation = theano.tensor.tanh
         elif activation == 'relu':
             def relu(x):
-                return T.maximum(x, .2 * x)
+                return T.maximum(x, 0.9 * x)
             self.activation = relu
+        elif activation == 'linear':
+            def linear(x):
+                return x
+            self.activation = linear
         else: 
             raise ValueError("activation argument must be one of {sigmoid, tanh, relu}")
         

@@ -1,10 +1,10 @@
-import os, sys
+import os, sys, copy 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), os.pardir, 'scripts')))
 
 import collections, random
 import theano
 import theano.tensor as T
-from mlp import MLP, HiddenLayer
+from mlp import MLP, HiddenLayer, OutputLayer
 
 import numpy as np
 
@@ -58,8 +58,9 @@ class NumberLineMDP(MDP):
     def succAndProbReward(self, state, action):
         return [(state, 0.4, 0),
                 (min(max(state + action, -self.n), +self.n), 0.6, state)]
-    def discount(self): return 1
+    def discount(self): return .9
 
+###########################################################
 
 # Return i in [0, ..., len(probs)-1] with probability probs[i].
 def sample(probs):
@@ -70,9 +71,10 @@ def sample(probs):
         if accum >= target: return i
     raise Exception("Invalid probs: %s" % probs)
 
-def test_nnet_numberline_mdp(n_episodes,  exploration_prob=0.1, learning_rate=.01):
+def test_nnet_numberline_mdp(n_episodes,  exploration_prob=0.3, learning_rate=.01, target_freeze_period=500):
 
-    mdp = NumberLineMDP(5)
+    size = 5.
+    mdp = NumberLineMDP(size)
     actions = mdp.actions(mdp.startState())
 
     features = T.dvector('features')
@@ -80,9 +82,10 @@ def test_nnet_numberline_mdp(n_episodes,  exploration_prob=0.1, learning_rate=.0
     reward = T.dscalar('reward')
     next_features = T.dvector('next_features')
 
-    hidden_layer_1 = HiddenLayer(n_vis=1, n_hid=len(actions), layer_name='hidden1', activation='relu')
-    # output_layer = OutputLayer(layer_name='output1', activation='relu')
-    layers = [hidden_layer_1]
+    n_vis = 1 # for chain mdp
+    hidden_layer_1 = HiddenLayer(n_vis=n_vis, n_hid=len(actions), layer_name='hidden', activation='tanh')
+    output_layer = OutputLayer(layer_name='out', activation='relu')
+    layers = [hidden_layer_1, output_layer]
     mlp = MLP(layers, discount=mdp.discount(), learning_rate=learning_rate)
     loss, updates = mlp.get_loss_and_updates(features, action, reward, next_features)
 
@@ -93,64 +96,51 @@ def test_nnet_numberline_mdp(n_episodes,  exploration_prob=0.1, learning_rate=.0
                     theano.Param(next_features, default=np.zeros(MAX_FEATURES_TEST))],
                     outputs=loss,
                     updates=updates,
-                    mode='FAST_COMPILE')
+                    mode='FAST_RUN')
 
     rewards = []
+    counter = 0
     for episode in xrange(n_episodes):
 
         cur_state = mdp.startState()
         while not mdp.isEnd(cur_state):
-            print 'cur_state: {}'.format(cur_state)
+            counter += 1
+            if counter % 1000 == 0:
+                mlp.frozen_layers = copy.deepcopy(mlp.layers)
 
+            print 'cur_state: {}'.format(cur_state)
 
             if random.random() < exploration_prob: 
                 action = random.choice(actions)
+                action_index = actions.index(action)
             else:
-                action = T.argmax(mlp.fprop([cur_state])).eval()
+                action_index = T.argmax(mlp.fprop([cur_state / size])).eval()
+                action = actions[action_index]
                 print 'action: {}'.format(action)
-            realAction = action
-            if action == 0: realAction = -1
-            
-            transitions = mdp.succAndProbReward(cur_state, realAction)
+            # realAction = action
+            # if action == 0: realAction = -1
+            transitions = mdp.succAndProbReward(cur_state, action) # previously realAction)
+            if len(transitions) == 0:
+                break
 
             # Choose a random transition
             i = sample([prob for newState, prob, reward in transitions])
-            print transitions[i]
             newState, prob, reward = transitions[i]
+
             print 'newState: {}'.format(newState)
             print 'reward: {}'.format(reward)
             print [(p.eval(), p.name) for p in mlp.get_params()]
-
-
-
-            loss = train_model([cur_state], action, reward, [newState])
-            print 'loss: {}'.format(loss)
+            print [(p.eval(), p.name) for p in mlp.get_params(freeze=True)]
             print '\n'
 
+            loss = train_model([cur_state / size], action_index, reward, [newState]) # previously action
             cur_state = newState
-            
-            # if verbose and counter % 53 == 0:
-            #     print('*' * 15 + ' training information ' + '*' * 15) 
-            #     print('episode: {}'.format(episode))
-            #     print('reward: \t{}'.format(reward))
-            #     print('action: \t{}'.format(real_actions[action]))
-            #     param_info = [(p.eval(), p.name) for p in mlp.get_params()]
-            #     for index, (val, name) in enumerate(param_info):
-            #         if previous_param_0 is None and index == 0:
-            #             previous_param_0 = val
-            #         print('parameter {} value: \n{}'.format(name, val))
-            #         if index == 0:
-            #             diff = val - previous_param_0
-            #             print('difference from previous param {}: \n{}'.format(name, diff))
-            #     print('features: \t{}'.format(features))
-            #     print('next_features: \t{}'.format(next_features))
-            #     print('*' * 52)
-            #     print('\n')
-
             rewards.append(reward)
 
-        
+        print('*' * 30)
         print('episode: {} ended with score: {}'.format(episode, rewards[-1]))
+        print('*' * 30)
+        print('\n')
         
     return rewards
 
