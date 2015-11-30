@@ -11,6 +11,7 @@
 
 import os
 import sys
+import copy
 import random
 
 import numpy as np
@@ -35,11 +36,12 @@ def train(gamepath,
           record_weights=True, 
           reduce_exploration_prob_amount=True,
           n_frames_to_skip=4,
-          exploration_prob=.5,
+          exploration_prob=.3,
           verbose=True,
-          discount=.99,
+          discount=.999,
           learning_rate=.01,
-          load_weights=False):
+          load_weights=False,
+          target_update_period=5):
     """
     :description: trains an agent to play a game 
 
@@ -83,12 +85,12 @@ def train(gamepath,
         hidden_layer_1 = file_utils.load_model('weights/hidden0_4000_tanh.pkl')
         hidden_layer_2 = file_utils.load_model('weights/hidden1_4000_tanh.pkl')
     else:
-        hidden_layer_1 = HiddenLayer(n_vis=MAX_FEATURES, n_hid=MAX_FEATURES, layer_name='hidden1', activation='relu')
-        hidden_layer_2 = HiddenLayer(n_vis=MAX_FEATURES, n_hid=len(actions), layer_name='hidden2', activation='relu')
+        hidden_layer_1 = HiddenLayer(n_vis=MAX_FEATURES, n_hid=MAX_FEATURES, layer_name='hidden1', activation='tanh')
+        hidden_layer_2 = HiddenLayer(n_vis=MAX_FEATURES, n_hid=len(actions), layer_name='hidden2', activation='tanh')
     
 
-    #output_layer = OutputLayer(layer_name='output1', activation='relu')
-    layers = [hidden_layer_1, hidden_layer_2]
+    output_layer = OutputLayer(layer_name='output', activation='relu')
+    layers = [hidden_layer_1, hidden_layer_2, output_layer]
     mlp = MLP(layers, discount=discount, learning_rate=learning_rate)
     loss, updates = mlp.get_loss_and_updates(features, action, reward, next_features)
 
@@ -104,8 +106,11 @@ def train(gamepath,
     losses = []
     best_reward = 4
     preprocessor = screen_utils.RGBScreenPreprocessor()
-    feature_extractor = feature_extractors.NNetOpenCVBoundingBoxExtractor(MAX_FEATURES)
+    feature_extractor = feature_extractors.NNetOpenCVBoundingBoxExtractor(max_features=MAX_FEATURES)
     for episode in xrange(n_episodes):
+
+        if episode % target_update_period == 0:
+            mlp.frozen_layers = copy.deepcopy(mlp.layers)
 
         total_reward = 0
         action = 1
@@ -130,7 +135,7 @@ def train(gamepath,
                 action = random.choice(actions)
             else:
                 action = T.argmax(mlp.fprop(features)).eval()
-            print(real_actions[action])
+
             reward += ale.act(real_actions[action])
             if ale.lives() < lives: 
                 lives = ale.lives()
@@ -139,7 +144,7 @@ def train(gamepath,
             next_screen = ale.getScreenRGB()
             next_screen = preprocessor.preprocess(next_screen)
             next_state = {"screen": next_screen, "objects": None, "prev_objects": state["objects"]}
-            next_features = feature_extractor(next_state)
+            next_features = feature_extractor(next_state, action=None)
             loss += train_model(features, action, reward, next_features)
             next_state["features"] = next_features
             state = next_state
@@ -190,12 +195,13 @@ if __name__ == '__main__':
     gamepath = os.path.join(base_dir, game)
     rewards = train(gamepath, 
                     n_episodes=10000, 
-                    display_screen=True, 
+                    display_screen=False, 
                     record_weights=False, 
-                    reduce_exploration_prob_amount=.000001,
+                    reduce_exploration_prob_amount=.00001,
                     n_frames_to_skip=4,
-                    exploration_prob=0.2,
-                    verbose=False,
+                    exploration_prob=0.3,
+                    verbose=True,
                     discount=.999,
-                    learning_rate=.0001,
-                    load_weights=True)
+                    learning_rate=.01,
+                    load_weights=False,
+                    target_update_period=5)

@@ -262,9 +262,9 @@ class BoundingBoxExtractor(object):
             print "features: " + str(features)
         return features
 
-
-def get_center(x,y,w,h):
-    return ((x + w) / 2, (y + h) / 2)
+def get_center(x,y,w,h): 
+    cx, cy = ((x + w) / 2., (y + h) / 2.)
+    return cx, cy
 
 def round_to(value, base):
     return int(base * round(float(value)/base))
@@ -377,22 +377,12 @@ class OpenCVBoundingBoxExtractor(object):
 
 class NNetOpenCVBoundingBoxExtractor(object):
 
-    def __init__(self, max_features, threshold=10):
+    def __init__(self, max_features, threshold=8):
         self.iter = 0
         self.max_features = max_features
-        self.found_centers = []
         self.threshold = threshold
-        self.max_y = 125.
-        self.max_x = 144.
-
-    """ is this center inside any previous box? """
-    def found_already(self, x, y, w, h):
-        cx, cy = get_center(x,y,w,h)
-        for fcx, fcy in self.found_centers:
-            if math.sqrt((fcx-cx)**2 + (fcy-cy)**2) < self.threshold:
-                return True
-        self.found_centers.append((cx, cy))
-        return False
+        self.max_x = 71.5
+        self.max_y = 60.
 
     def get_bounding_boxes(self, screen):
         self.iter = self.iter + 1;
@@ -408,53 +398,74 @@ class NNetOpenCVBoundingBoxExtractor(object):
             epsilon = 0.00*cv2.arcLength(cnt,True)
             approx.append(cv2.approxPolyDP(cnt,epsilon,True))
 
-        boxes = []
+        temp_boxes = []
         for idx, cont in enumerate(approx):
             x,y,w,h = cv2.boundingRect(cont)
-            get_center(x,y,w,h)
-            if not self.found_already(x,y,w,h):
-                boxes.append(((x,w),(y,h)))
-        #     cv2.rectangle(img, (x,y), (x+w, y+h), (0,255,0))
-        # cv2.imshow('img_w_boxes', img)
-        return boxes
+            temp_boxes.append((x,y,w,h))
 
-    def __call__(self, state):
+        temp_boxes = list(set(temp_boxes))
+
+        if len(temp_boxes) == 0:
+            return np.zeros(self.max_features).tolist()
+        if len(temp_boxes) == 1:
+            return temp_boxes
+
+        temp_boxes = sorted(temp_boxes, key=lambda (x,y,w,h): w*h, reverse=True)
+        b1 = temp_boxes[0]
+        b2 = temp_boxes[-1]
+        cx1, cy1 = get_center(b1[0], b1[1], b1[2], b1[3])
+        cx2, cy2 = get_center(b2[0], b2[1], b2[2], b2[3])
+        dist = math.sqrt((cx1 - cx2) ** 2 + (cy1 - cy2) ** 2)
+        if  dist > self.threshold:
+            # cv2.rectangle(img, (b1[0],b1[1]), (b1[0]+b1[2], b1[1]+b1[3]), (0,255,0))
+            # cv2.rectangle(img, (b2[0],b2[1]), (b2[0]+b2[2], b2[1]+b2[3]), (0,255,0))
+            # cv2.imshow('img_w_boxes', img)
+            return [b1, b2]
+        else:
+            # cv2.rectangle(img, (b1[0],b1[1]), (b1[0]+b1[2], b1[1]+b1[3]), (0,255,0))
+            # cv2.imshow('img_w_boxes', img)
+            return [b1]
+
+        #cv2.rectangle(img, (x,y), (x+w, y+h), (0,255,0))
+        
+
+    def __call__(self, state, action):
         screen = state["screen"]
-        if screen.shape[-1] != 3:
-            print("invalid screen shape: {}".format(screen.shape))
         self.found_centers = []
-        try:
-            state["objects"] = self.get_bounding_boxes(screen)
-        except cv2.error as e:
-            # print("encountered exception extracting features, return 0 features")
-            # print(e)
-            return np.zeros(self.max_features)
+        state["objects"] = self.get_bounding_boxes(screen)
 
         centers = []
-        for (x,w), (y,h) in state["objects"]:
-            centers.append((get_center(x,w,y,h),w * h))
-        centers = sorted(centers, key=lambda (c,area): area)
-        centers = [c for c, area in centers]
+        for (x,y,w,h) in state["objects"]:
+            centers.append((get_center(x,y,w,h), w * h))
+        centers = sorted(centers, key=lambda (c, area): area, reverse=True)
+        centers = [(cx, cy) for (cx, cy), area in centers]
 
         prev_centers = []
         if state["prev_objects"] is not None:
-            for (x,w), (y,h) in state["prev_objects"]:
-                prev_centers.append((get_center(x,w,y,h), w * h))
-        prev_centers = sorted(prev_centers, key=lambda (c, area): area)
-        prev_centers = [c for c, area in prev_centers]
-
+            for (x,y,w,h) in state["prev_objects"]:
+                prev_centers.append((get_center(x,y,w,h), w * h))
+            prev_centers = sorted(prev_centers, key=lambda (c, area): area, reverse=True)
+            prev_centers = [(cx, cy) for (cx,cy), area in prev_centers]
+        else:
+            prev_centers = [(0, 0) * len(centers)]
+        
         position_derivatives = []
-        if len(centers) == len(prev_centers):
-            for c, pc in zip(centers, prev_centers):
-                dx, dy = tuple(map(operator.sub, c, pc))
-                dx = np.clip(dx, -1, 1)
-                dy = np.clip(dy, -1, 1)
-                position_derivatives.append((dx, dy))
+        for c, pc in zip(centers, prev_centers):
+            dx, dy = c[0] - pc[0], c[1] - pc[1]
+            dx = np.clip(dx, -1, 1)
+            dy = np.clip(dy, -1, 1)
+            position_derivatives.append((dx, dy))
 
         features = []
-        for (cx, cy), (dx, dy) in zip(centers, position_derivatives):
-            features.append(cx / 1 )#self.max_x)
-            features.append(cy / 1 )#self.max_y)
+        for (cx, cy) in centers:
+            features.append(cx / self.max_x)
+            features.append(cy / self.max_y)
+
+        while len(features) < self.max_features / 2:
+            features.append(0)
+        features = features[:4]
+
+        for (dx, dy) in position_derivatives:
             features.append(dx)
             features.append(dy)
 
