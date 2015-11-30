@@ -190,10 +190,6 @@ class OutputLayer(object):
             def relu(x):
                 return T.maximum(x, 0.9 * x)
             self.activation = relu
-        elif activation == 'linear':
-            def linear(x):
-                return x
-            self.activation = linear
         else: 
             raise ValueError("activation argument must be one of {sigmoid, tanh, relu}")
         
