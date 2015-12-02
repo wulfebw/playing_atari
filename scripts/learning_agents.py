@@ -1,4 +1,5 @@
 import sys, collections, math, random
+import numpy as np
 
 # Abstract class: an RLAlgorithm performs reinforcement learning.  All it needs
 # to know is the set of available actions to take.  The simulator (see
@@ -25,7 +26,7 @@ class RLAlgorithm:
 # explorationProb: the epsilon value indicating how frequently the policy
 # returns a random action
 class QLearningAlgorithm(RLAlgorithm):
-    def __init__(self, actions, discount, featureExtractor, explorationProb=0.2, stepSize=0.1):
+    def __init__(self, actions, discount, featureExtractor, explorationProb=0.2, stepSize=0.01, maxGradient=1):
         self.actions = actions
         self.discount = discount
         self.featureExtractor = featureExtractor
@@ -34,6 +35,7 @@ class QLearningAlgorithm(RLAlgorithm):
         self.numIters = 1
         self.stepSize = stepSize
         self.target_weights = self.weights
+        self.maxGradient = maxGradient
 
     # Return the Q function associated with the weights and features
     def getQ(self, state, action, weights=None):
@@ -55,11 +57,10 @@ class QLearningAlgorithm(RLAlgorithm):
             return random.choice(self.actions)
         else:
             maxAction = max((self.getQ(state, action), action) for action in self.actions)[1]
-	return maxAction
+        return maxAction
 
     # Call this function to get the step size to update the weights.
     def getStepSize(self):
-        #return 1.0 / self.numIters
         return self.stepSize
 
     # We will call this function with (s, a, r, s'), which you should use to update |weights|.
@@ -67,50 +68,17 @@ class QLearningAlgorithm(RLAlgorithm):
     # You should update the weights using self.getStepSize(); use
     # self.getQ() to compute the current estimate of the parameters.
     def incorporateFeedback(self, state, action, reward, newState):
-        # here's how q-learning works
-        # it's an off-model bootstrapping method
-        
-        # offmodel: this means it doesn't even try to predict what the transition or reward 
-        # probabilities are, all it does is try to directly predict the value function
-        # specifically, it tries to predict the optimal value function (whereas 
-        # SARSA tries to predict the value function of a given policy)
-        
-        # bootstrapping: means it uses the current appromixation to evaluate future approximations
-        
-        # 1. calculate the current _prediction_ for the Qopt value using getQ
-        # 2. calculate a _target_ value also using Qopt, but do so over the next possible states and actions
-        #    also adding the reward we just got
-        # 3. if these two values are far apart, update the weights a lot, o/w don't update them too much
-
-
         stepSize = self.getStepSize()
         prediction = self.getQ(state, action)        
         target = reward
         if newState != None:
             target += self.discount * max((self.getQ(newState, newAction, self.target_weights), newAction) for newAction in self.actions)[0]
 
-        # "gradient clipping"
-        max_gradient = 1
         update = stepSize*(prediction - target)
-        if update > max_gradient:
-            update = max_gradient
-        elif update < -max_gradient:
-            update = -max_gradient
+        update = np.clip(update, -self.maxGradient, self.maxGradient)
         for f, v in self.featureExtractor(state, action):
-            # print("feature: {}\textracted value: {}".format(f,v))
-            # self.weights[f] = self.weights[f] - stepSize*(prediction - target)*v
             self.weights[f] = self.weights[f] - update*v
             assert(self.weights[f] < 10000)
 
-
-        # print('prediction: {}'.format(prediction))
-        # print('target: {}'.format(target))
-        # print('state["objects"]: {}'.format(state["objects"]))
-        # print('action: {}'.format(action))
-        # print('reward: {}'.format(reward))
-        # print('newState["objects"]: {}'.format(newState["objects"]))
-        # for k, v in self.weights.iteritems():
-        #     print('feature: {}\t weight: {}'.format(k,v))
-        # print '\n' * 5
 
 

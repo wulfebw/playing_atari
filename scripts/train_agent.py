@@ -17,174 +17,161 @@ import feature_extractors
 import learning_agents
 
 def get_agent(gamepath,
-			learning_algorithm=learning_agents.QLearningAlgorithm,
-			feature_extractor=feature_extractors.OpenCVBoundingBoxExtractor,
-			discount=0.99,
-			explorationProb=.3,
-			load_weights=True):
-	"""
-	:description: instantiates an agent
+            learning_algorithm,
+            feature_extractor,
+            load_weights,
+            discount,
+            explorationProb,
+            stepSize,
+            maxGradient):
+    """
+    :description: instantiates an agent
 
-	:type gamepath: string 
-	:param gamepath: path to the binary of the game to be played
+    :type gamepath: string 
+    :param gamepath: path to the binary of the game to be played
 
-	:type ReinforcementLearner: subclass of learning_agents.RLAlgorithm
-	:param ReinforcementLearner: the algorithm/agent that will learn to play the game
+    :type ReinforcementLearner: subclass of learning_agents.RLAlgorithm
+    :param ReinforcementLearner: the algorithm/agent that will learn to play the game
 
-	:type discount: float
-	:param discount: discount factor applied to rewards over time
+    :type discount: float
+    :param discount: discount factor applied to rewards over time
 
-	:type explorationProb: float
-	:param explorationProb: the probability that the agent takes a random action. 
-							just assuming epsilon-greedy.
+    :type explorationProb: float
+    :param explorationProb: the probability that the agent takes a random action. 
+                            just assuming epsilon-greedy.
 
-	:type load_weights: boolean
-	:param load_weights: whether or not to load in stored weights for the agent
+    :type load_weights: boolean
+    :param load_weights: whether or not to load in stored weights for the agent
 
-	"""
-	
-	# 1. load the legal actions for this game (don't see a reasonable way around this)
-	# ale = ALEInterface()
-	# ale.loadROM(gamepath)
-	# 3 goes right
-	# 4 goes left
-	# 6 also goes right?
-	# 7 also goes left?
-	# 8 goes right also
-	legal_actions = np.array([1,3,4])#ale.getLegalActionSet()
+    """
+    
+    # 3 goes right
+    # 4 goes left
+    legal_actions = np.array([0,1,3,4]) # ale.getLegalActionSet()
 
-	# 2. instantiate and return agent
-	fe = feature_extractor()
-	agent = learning_algorithm(actions=legal_actions,
-								discount=discount,
-								featureExtractor=fe,
-								explorationProb=explorationProb)
+    # 2. instantiate and return agent
+    fe = feature_extractor()
+    agent = learning_algorithm(actions=legal_actions,
+                                featureExtractor=fe,
+                                discount=discount,
+                                explorationProb=explorationProb,
+                                stepSize=stepSize,
+                                maxGradient=maxGradient)
 
-	# 3. load and set weights if we have them
-	if load_weights:
-		weights = file_utils.load_weights()
-		if weights is not None:
-			agent.weights = weights
+    # 3. load and set weights if we have them
+    if load_weights:
+        weights = file_utils.load_weights()
+        if weights is not None:
+            agent.weights = weights
 
-	return agent
+    return agent
 
-def train_agent(gamepath, agent, n_episodes=10000, display_screen=False):
-	"""
-	:description: trains an agent to play a game 
+def train_agent(gamepath, 
+                agent, 
+                n_episodes=10000, 
+                display_screen=True, 
+                record_weights=True, 
+                reduce_exploration_prob_amount=True,
+                n_frames_to_skip=4):
+    """
+    :description: trains an agent to play a game 
 
-	:type gamepath: string 
-	:param gamepath: path to the binary of the game to be played
+    :type gamepath: string 
+    :param gamepath: path to the binary of the game to be played
 
-	:type agent: subclass RLAlgorithm
-	:param agent: the algorithm/agent that learns to play the game
+    :type agent: subclass RLAlgorithm
+    :param agent: the algorithm/agent that learns to play the game
 
-	:type n_episodes: int 
-	:param n_episodes: number of episodes of the game on which to train
-	"""
+    :type n_episodes: int 
+    :param n_episodes: number of episodes of the game on which to train
+    """
 
-	# load the ale interface to interact with
-	ale = ALEInterface()
-	ale.setInt('random_seed', 42)
+    # load the ale interface to interact with
+    ale = ALEInterface()
+    ale.setInt('random_seed', 42)
 
-	# display/recording settings, doesn't seem to work currently
-	recordings_dir = './recordings/breakout/'
-	# previously "USE_SDL"
-	if display_screen:
-		if sys.platform == 'darwin':
-			import pygame
-			pygame.init()
-			ale.setBool('sound', False) # Sound doesn't work on OSX
-			#ale.setString("record_screen_dir", recordings_dir);
-		elif sys.platform.startswith('linux'):
-			ale.setBool('sound', True)
-		ale.setBool('display_screen', True)
+    # display/recording settings, doesn't seem to work currently
+    recordings_dir = './recordings/breakout/'
+    # previously "USE_SDL"
+    if display_screen:
+        if sys.platform == 'darwin':
+            import pygame
+            pygame.init()
+            ale.setBool('sound', False) # Sound doesn't work on OSX
+            #ale.setString("record_screen_dir", recordings_dir);
+        elif sys.platform.startswith('linux'):
+            ale.setBool('sound', True)
+        ale.setBool('display_screen', True)
 
-	# load the ROM file
-	ale.loadROM(gamepath)
+    ale.loadROM(gamepath)
 
-	rewards = []
-	best_reward = -1
-	# train the agent
-	for episode in xrange(n_episodes):
-		total_reward = 0
+    rewards = [-5]
+    best_reward = 5
+    for episode in xrange(n_episodes):
 
-		# need a preprocessor with some state
-		preprocessor = screen_utils.BlobScreenPreprocessor()
-		#preprocessor = screen_utils.RGBScreenPreprocessor()
+        total_reward = 0
+        action = 1
+        counter = 0
+        reward = 0
+        lives = ale.lives()
+        preprocessor = screen_utils.RGBScreenPreprocessor()
+        screen = np.zeros((preprocessor.dim, preprocessor.dim, preprocessor.channels), dtype=np.int8)
+        state = { "screen" : screen, "objects" : None, "prev_objects": None, "prev_action": 0, "action": 0 }
+        
+        while not ale.game_over():
+            counter += 1
+            if counter % n_frames_to_skip != 0:
+                reward += ale.act(action)
+                continue
 
-		# let's just say the start screen is all zeros and our first action is 0
-		screen = np.zeros((preprocessor.dim, preprocessor.dim, preprocessor.channels))
-		state = { "screen" : screen, "objects" : None, "prev_objects": None, "prev_action": 0 }
-		action = 1
-		counter = 0
-		reward = 0
-		lives = ale.lives()
-		# each episode consists of a game
-		while not ale.game_over():
-			counter += 1
+            action = agent.getAction(state)
+            reward += ale.act(action)
+            if ale.lives() < lives:
+              lives = ale.lives()
+              reward -= 1
+            total_reward += reward
 
-			if counter % 4 != 0:
-				reward += ale.act(action)
-				continue
+            new_screen = ale.getScreenRGB()
+            new_preprocessed_screen = preprocessor.preprocess(new_screen)
+            new_state = {"screen": new_preprocessed_screen, "objects": None, "prev_objects": state["objects"], "prev_action": state["action"], "action": action}
+            agent.incorporateFeedback(state, action, reward, new_state)
+            state = new_state
+            reward = 0
 
+        rewards.append(total_reward)
+        if total_reward > best_reward and record_weights:
+            best_reward = total_reward
+            file_utils.save_weights(agent.weights)
+            print("best reward!: {}".format(total_reward))
 
-			# 1. retrieve the screen for the current frame, this amounts to the state
-			#new_screen = ale.getScreenGrayscale()
-			new_screen = ale.getScreenRGB()
+        if episode != 0 and episode % 1000 == 0 and record_weights:
+            file_utils.save_rewards(rewards)
+            file_utils.save_weights(agent.weights, episodic=True)
 
-			# 2. preprocess the screen
-			new_preprocessed_screen = preprocessor.preprocess(new_screen)
-	
-			# 3. request an action from the agent
-			prev_objects = state["objects"]
-			new_state = { "screen": new_preprocessed_screen, "objects": None , 
-						"prev_objects": state["objects"], "prev_action": state["prev_action"]} 
-			action = agent.getAction(new_state)
-			new_state["prev_action"] = action
-
-			# 4. perform that action and receive the corresponding reward
-			reward += ale.act(action)
-			if ale.lives() < lives:
-				lives = ale.lives()
-				reward -= 1
-			
-			# restrict reward to {-1, 0, 1}
-			if reward > 0:
-				reward = 1
-			elif reward < 0:
-				reward = -1
-
-			total_reward += reward
-
-			# 5. incorporate this feedback into the agent
-			agent.incorporateFeedback(state, action, reward, new_state)
-
-			# 6. set the new screen to be the old screen
-			state = new_state
-
-			reward = 0
-
-		# 7. if we had a new record, save the feature weights
-		if total_reward > best_reward:
-			best_reward = total_reward
-			file_utils.save_weights(agent.weights)
-			print("best reward!: {}".format(total_reward))
-
-		if episode != 0 and episode % 1000 == 0:
-			file_utils.save_weights(agent.weights)
-		if episode % 100 == 0:
-			print("Avg reward: {}".format(float(sum(rewards))/len(rewards) if len(rewards) > 0 else float('nan')))
-		if agent.explorationProb > .1:
-			agent.explorationProb -= .0004
-		rewards.append(total_reward)
-		print('episode: {} ended with score: {}'.format(episode, total_reward))
-		ale.reset_game()
-	return rewards
+        if agent.explorationProb > .1:
+            agent.explorationProb -= reduce_exploration_prob_amount
+        
+        print('episode: {} ended with score: {}'.format(episode, total_reward))
+        ale.reset_game()
+    return rewards
 
 if __name__ == '__main__':
 
-	base_dir = 'roms'
-	game = 'breakout.bin'
-	gamepath = os.path.join(base_dir, game)
-	agent = get_agent(gamepath)
-	rewards = train_agent(gamepath, agent)
+    base_dir = 'roms'
+    game = 'breakout.bin'
+    gamepath = os.path.join(base_dir, game)
+    agent = get_agent(gamepath, 
+                    learning_algorithm=learning_agents.QLearningAlgorithm,
+                    feature_extractor=feature_extractors.OpenCVBoundingBoxExtractor,
+                    load_weights=False,
+                    discount=0.999,
+                    explorationProb=0.4,
+                    stepSize=0.01,
+                    maxGradient=1)
+    rewards = train_agent(gamepath, 
+                        agent, 
+                        n_episodes=20000, 
+                        display_screen=False, 
+                        record_weights=True, 
+                        reduce_exploration_prob_amount=.00001,
+                        n_frames_to_skip=4)
