@@ -19,6 +19,7 @@ import file_utils
 import screen_utils
 import feature_extractors
 import learning_agents
+from replay_memory import ReplayMemory
 from mlp import MLP, HiddenLayer, OutputLayer
 
 # the input size of the network
@@ -35,7 +36,8 @@ def train(gamepath,
           discount=.995,
           learning_rate=.01,
           load_weights=False,
-          frozen_target_update_period=5):
+          frozen_target_update_period=5,
+	  use_replay_mem=True):
     """
     :description: trains an agent to play a game 
 
@@ -145,6 +147,8 @@ def train(gamepath,
     preprocessor = screen_utils.RGBScreenPreprocessor()
     feature_extractor = feature_extractors.NNetOpenCVBoundingBoxExtractor(max_features=MAX_FEATURES)
 
+    if (use_replay_mem):
+	replay_mem = ReplayMemory()
     # main training loop, each episode is a full playthrough of the game
     for episode in xrange(n_episodes):
 
@@ -214,9 +218,15 @@ def train(gamepath,
 
             # get the features for the next state
             next_features = feature_extractor(next_state, action=None)
-
-            # call the train model function
-            loss += train_model(features, action, reward, next_features)
+	    if (use_replay_mem):
+		sars_tuple = (features, action, reward, next_features)
+		replay_mem.store(sars_tuple)
+		random_train_tuple = replay_mem.sample()
+		loss += train_model(random_train_tuple[0], random_train_tuple[1], random_train_tuple[2],
+			random_train_tuple[3])
+	    else:
+		# call the train model function
+            	loss += train_model(features, action, reward, next_features)
 
             # prepare for the next loop through the game
             next_state["features"] = next_features
@@ -228,7 +238,10 @@ def train(gamepath,
                 print('*' * 15 + ' training information ' + '*' * 15) 
                 print('episode: {}'.format(episode))
                 print('reward: \t{}'.format(reward))
-                print('action: \t{}'.format(real_actions[action]))
+                print('avg reward: \t{}'.format(np.mean(rewards)))
+		if (len(rewards) > 25):
+			print 'avg reward (last 25): \t{}'.format(np.mean(rewards[-25:]))
+		print('action: \t{}'.format(real_actions[action]))
                 param_info = [(p.eval(), p.name) for p in mlp.get_params()]
                 for index, (val, name) in enumerate(param_info):
                     if previous_param_0 is None and index == 0:
