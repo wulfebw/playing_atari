@@ -82,12 +82,10 @@ class MLP(object):
         next_q_values = self.fprop(next_features, freeze=True)
         next_q_values = theano.gradient.disconnected_grad(next_q_values)
         target = reward + self.discount * T.max(next_q_values)
-        
-        params = self.get_params()
-        #l2norm = T.sum([(param ** 2).sum() for param in params if 'b' not in param.name])
-        loss = .5 * T.sqr(target - q_values[action]) #+ l2norm * 0.000
-        gparams = T.grad(loss, params)
+        loss = .5 * T.sqr(target - q_values[action])
 
+        params = self.get_params()
+        gparams = T.grad(loss, params)
         updates = [(param, param - self.learning_rate * gparam) for param, gparam in zip(params, gparams)]
         return (loss, updates)
 
@@ -188,7 +186,7 @@ class OutputLayer(object):
             self.activation = theano.tensor.tanh
         elif activation == 'relu':
             def relu(x):
-                return T.maximum(x, 0.9 * x)
+                return T.maximum(x, 0.01 * x)
             self.activation = relu
         else: 
             raise ValueError("activation argument must be one of {sigmoid, tanh, relu}")
