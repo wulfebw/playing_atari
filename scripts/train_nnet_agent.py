@@ -179,6 +179,10 @@ def train(gamepath,
             if counter % n_frames_to_skip != 0:
                 counter += 1
                 reward += ale.act(real_actions[action])
+                # this is commented out because i think it might not be helpful
+                # if ale.lives() < lives: 
+                #     lives = ale.lives()
+                #     reward -= 1
                 continue
 
             counter += 1
