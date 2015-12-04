@@ -1,7 +1,7 @@
 
 import random
 
-DEFAULT_CAPACITY = 10000
+DEFAULT_CAPACITY = 100000
 
 class ReplayMemory:
 	def __init__(self, capacity=DEFAULT_CAPACITY):
@@ -23,6 +23,8 @@ class ReplayMemory:
 	def sample(self): # returns SARS' tuple
 		if (self.first_index == -1):
 			return
+		if (self.capacity > self.last_index + 1 - self.first_index:
+			return self.memory[last_index] # dont sample randomly until replay is full
 		rand_sample_index = random.randint(self.first_index, self.last_index)
 		#print "num in memory: " + str(len(self.memory)) + " rand index: " + str(rand_sample_index)
 		return self.memory[rand_sample_index]

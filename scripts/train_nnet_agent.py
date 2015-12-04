@@ -145,6 +145,9 @@ def train(gamepath,
                     updates=updates,
                     mode='FAST_RUN')
 
+    sym_action = mlp.get_action(features)
+    get_action = theano.function([features], sym_action)
+
     # some containers for collecting information about the training processes 
     rewards = []
     losses = []
@@ -213,7 +216,8 @@ def train(gamepath,
                 # the current state and take the argmax of the output
                 # layer (i.e., the action that corresponds to the 
                 # maximum q value)
-                action = T.argmax(mlp.fprop(features)).eval()
+                action = get_action(features)
+                #T.argmax(mlp.fprop(features)).eval()
 
             # take the action and receive the reward
             reward += ale.act(real_actions[action])

@@ -56,6 +56,9 @@ class MLP(object):
             outputs.append(features)
         return outputs[-1]
 
+    def get_action(self, features):
+        return T.argmax(self.fprop(features))
+
     def get_loss_and_updates(self, features, action, reward, next_features):
         """
         :description: returns symbolic expressions for the loss and parameter updates
