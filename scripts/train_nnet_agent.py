@@ -10,6 +10,8 @@ import random
 import numpy as np
 import theano
 import theano.tensor as T
+from sklearn import preprocessing
+from sklearn.decomposition import PCA
 
 # atari learning environment imports
 from ale_python_interface import ALEInterface
@@ -37,7 +39,7 @@ def train(gamepath,
           learning_rate=.01,
           load_weights=False,
           frozen_target_update_period=5,
-	  use_replay_mem=True):
+          use_replay_mem=True):
     """
     :description: trains an agent to play a game 
 
@@ -102,8 +104,13 @@ def train(gamepath,
     # load weights by file name
     # currently must be loaded by individual hidden layers
     if load_weights:
+<<<<<<< HEAD
         hidden_layer_1 = file_utils.load_model('weights/hidden0_replay.pkl')
         hidden_layer_2 = file_utils.load_model('weights/hidden1_replay.pkl')
+=======
+        hidden_layer_1 = file_utils.load_model('weights/hidden0_20.pkl')
+        hidden_layer_2 = file_utils.load_model('weights/hidden1_20.pkl')
+>>>>>>> 58c59bcf67a5ffb7aafd37ec482cfb31bbdd8424
     else:
         # defining the hidden layer network structure
         # the n_hid of a prior layer must equal the n_vis of a subsequent layer
@@ -142,13 +149,15 @@ def train(gamepath,
     rewards = []
     losses = []
     best_reward = 4
+    sequence_examples = []
+    sampled_examples = []
 
     # the preprocessor and feature extractor to use
     preprocessor = screen_utils.RGBScreenPreprocessor()
     feature_extractor = feature_extractors.NNetOpenCVBoundingBoxExtractor(max_features=MAX_FEATURES)
 
-    if (use_replay_mem):
-	replay_mem = ReplayMemory()
+    if use_replay_mem:
+        replay_mem = ReplayMemory()
     # main training loop, each episode is a full playthrough of the game
     for episode in xrange(n_episodes):
 
@@ -222,30 +231,39 @@ def train(gamepath,
 
             # get the features for the next state
             next_features = feature_extractor(next_state, action=None)
-	    if (use_replay_mem):
-		sars_tuple = (features, action, reward, next_features)
-		replay_mem.store(sars_tuple)
-		random_train_tuple = replay_mem.sample()
-		loss += train_model(random_train_tuple[0], random_train_tuple[1], random_train_tuple[2],
-			random_train_tuple[3])
-	    else:
-		# call the train model function
-            	loss += train_model(features, action, reward, next_features)
+
+            if use_replay_mem:
+                sars_tuple = (features, action, reward, next_features)
+                replay_mem.store(sars_tuple)
+                random_train_tuple = replay_mem.sample()
+                loss += train_model(*random_train_tuple)
+
+                # collect for pca
+                sequence_examples.append(list(sars_tuple[0]) + [sars_tuple[1]] \
+                         + [sars_tuple[2]] + sars_tuple[3])
+                sequence_examples = sequence_examples[-100:]
+                sampled_examples.append(list(random_train_tuple[0]) + [random_train_tuple[1]] \
+                        + [random_train_tuple[2]] + random_train_tuple[3])
+                sampled_examples = sampled_examples[-100:]
+            else:
+                # call the train model function
+                loss += train_model(features, action, reward, next_features)
 
             # prepare for the next loop through the game
             next_state["features"] = next_features
             state = next_state
-            
+                
             # weird counter value to avoid interaction with any other counter
             # loop that might be added, not necessary right now
-            if verbose and counter % 53 == 0:
+            if verbose and counter % 101 == 0:
                 print('*' * 15 + ' training information ' + '*' * 15) 
                 print('episode: {}'.format(episode))
                 print('reward: \t{}'.format(reward))
                 print('avg reward: \t{}'.format(np.mean(rewards)))
-		if (len(rewards) > 25):
-			print 'avg reward (last 25): \t{}'.format(np.mean(rewards[-25:]))
-		print('action: \t{}'.format(real_actions[action]))
+                print 'avg reward (last 25): \t{}'.format(np.mean(rewards[-25:]))
+                print('action: \t{}'.format(real_actions[action]))
+                print('exploration prob: {}'.format(exploration_prob))
+                
                 param_info = [(p.eval(), p.name) for p in mlp.get_params()]
                 for index, (val, name) in enumerate(param_info):
                     if previous_param_0 is None and index == 0:
@@ -254,8 +272,20 @@ def train(gamepath,
                     if index == 0:
                         diff = val - previous_param_0
                         print('difference from previous param {}: \n{}'.format(name, diff))
+
                 print('features: \t{}'.format(features))
                 print('next_features: \t{}'.format(next_features))
+
+                scaled_sequence = preprocessing.scale(np.array(sequence_examples))
+                scaled_sampled = preprocessing.scale(np.array(sampled_examples))
+                pca = PCA()
+                _ = pca.fit_transform(scaled_sequence)
+                print('variance explained by first component for sequence: {}%'.format(pca. \
+                    explained_variance_ratio_[0] * 100))
+                _ = pca.fit_transform(scaled_sampled)
+                print('variance explained by first component for sampled: {}%'.format(pca. \
+                    explained_variance_ratio_[0] * 100))
+
                 print('*' * 52)
                 print('\n')
 
@@ -299,11 +329,21 @@ if __name__ == '__main__':
                     n_episodes=10000, 
                     display_screen=False, 
                     record_weights=True, 
+<<<<<<< HEAD
                     reduce_exploration_prob_amount=0.0001,
+=======
+                    reduce_exploration_prob_amount=0.001,
+>>>>>>> 58c59bcf67a5ffb7aafd37ec482cfb31bbdd8424
                     n_frames_to_skip=4,
-                    exploration_prob=0.3,
+                    exploration_prob=1,
                     verbose=True,
+<<<<<<< HEAD
                     discount=0.999,
                     learning_rate=.001,
+=======
+                    discount=0.99,
+                    learning_rate=.002,
+>>>>>>> 58c59bcf67a5ffb7aafd37ec482cfb31bbdd8424
                     load_weights=False,
-                    frozen_target_update_period=5)
+                    frozen_target_update_period=5,
+                    use_replay_mem=True)
