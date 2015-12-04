@@ -104,8 +104,8 @@ def train(gamepath,
     # load weights by file name
     # currently must be loaded by individual hidden layers
     if load_weights:
-        hidden_layer_1 = file_utils.load_model('weights/hidden0.pkl')
-        hidden_layer_2 = file_utils.load_model('weights/hidden1.pkl')
+        hidden_layer_1 = file_utils.load_model('weights/hidden0_20.pkl')
+        hidden_layer_2 = file_utils.load_model('weights/hidden1_20.pkl')
     else:
         # defining the hidden layer network structure
         # the n_hid of a prior layer must equal the n_vis of a subsequent layer
@@ -257,6 +257,7 @@ def train(gamepath,
                 print('avg reward: \t{}'.format(np.mean(rewards)))
                 print 'avg reward (last 25): \t{}'.format(np.mean(rewards[-25:]))
                 print('action: \t{}'.format(real_actions[action]))
+                print('exploration prob: {}'.format(exploration_prob))
                 
                 param_info = [(p.eval(), p.name) for p in mlp.get_params()]
                 for index, (val, name) in enumerate(param_info):
@@ -323,12 +324,12 @@ if __name__ == '__main__':
                     n_episodes=10000, 
                     display_screen=False, 
                     record_weights=True, 
-                    reduce_exploration_prob_amount=0.00001,
+                    reduce_exploration_prob_amount=0.001,
                     n_frames_to_skip=4,
-                    exploration_prob=0.3,
+                    exploration_prob=1,
                     verbose=True,
-                    discount=0.995,
-                    learning_rate=.01,
+                    discount=0.99,
+                    learning_rate=.002,
                     load_weights=False,
                     frozen_target_update_period=5,
                     use_replay_mem=True)
