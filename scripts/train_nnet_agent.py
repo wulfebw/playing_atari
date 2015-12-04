@@ -102,8 +102,8 @@ def train(gamepath,
     # load weights by file name
     # currently must be loaded by individual hidden layers
     if load_weights:
-        hidden_layer_1 = file_utils.load_model('weights/hidden0.pkl')
-        hidden_layer_2 = file_utils.load_model('weights/hidden1.pkl')
+        hidden_layer_1 = file_utils.load_model('weights/hidden0_replay.pkl')
+        hidden_layer_2 = file_utils.load_model('weights/hidden1_replay.pkl')
     else:
         # defining the hidden layer network structure
         # the n_hid of a prior layer must equal the n_vis of a subsequent layer
@@ -169,7 +169,7 @@ def train(gamepath,
         # lives here is used for the reward heuristic of subtracting 1 from the reward 
         # when we lose a life. currently commented out this functionality because
         # i think it might not be helpful.
-        #lives = ale.lives()
+        lives = ale.lives()
 
         # the initial state of the screen and state
         screen = np.zeros((preprocessor.dim, preprocessor.dim, preprocessor.channels))
@@ -183,10 +183,10 @@ def train(gamepath,
             if counter % n_frames_to_skip != 0:
                 counter += 1
                 reward += ale.act(real_actions[action])
-                # this is commented out because i think it might not be helpful
-                # if ale.lives() < lives: 
-                #     lives = ale.lives()
-                #     reward -= 1
+                 #this is commented out because i think it might not be helpful
+                if ale.lives() < lives: 
+                   lives = ale.lives()
+                   reward -= 1
                 continue
 
             counter += 1
@@ -210,9 +210,9 @@ def train(gamepath,
             reward += ale.act(real_actions[action])
 
             # this is commented out because i think it might not be helpful
-            # if ale.lives() < lives: 
-            #     lives = ale.lives()
-            #     reward -= 1
+            if ale.lives() < lives: 
+                 lives = ale.lives()
+                 reward -= 1
 
 
             # get the next screen, preprocess it, initialize the next state
@@ -299,11 +299,11 @@ if __name__ == '__main__':
                     n_episodes=10000, 
                     display_screen=False, 
                     record_weights=True, 
-                    reduce_exploration_prob_amount=0.00001,
+                    reduce_exploration_prob_amount=0.0001,
                     n_frames_to_skip=4,
                     exploration_prob=0.3,
                     verbose=True,
-                    discount=0.995,
-                    learning_rate=.01,
+                    discount=0.999,
+                    learning_rate=.001,
                     load_weights=False,
                     frozen_target_update_period=5)

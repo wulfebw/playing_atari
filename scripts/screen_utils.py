@@ -67,7 +67,7 @@ class RGBScreenPreprocessor(ScreenPreprocessor):
         # currently this just takes the section of the screen with the ball and the block
         height, width, channels = screen.shape
         #screen = screen.reshape(screen.shape[0], screen.shape[1], )
-        screen = screen[height*.5:, width*.05: width*.95, :]
+        screen = screen[int(height*.5):, int(width*.05): int(width*.95), :]
         if False:
             cv2.imshow('screen', screen)
             # # x = raw_input()
