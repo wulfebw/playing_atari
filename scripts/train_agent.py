@@ -143,8 +143,11 @@ def train_agent(gamepath,
             best_reward = total_reward
             file_utils.save_weights(agent.weights)
             print("best reward!: {}".format(total_reward))
-
-        if episode != 0 and episode % 1000 == 0 and record_weights:
+	if episode % 25 == 0:
+		print("Avg reward: {}".format(np.mean(rewards)))
+		print("Last 50: {}".format(np.mean(rewards[-50:])))
+		print("Explore: {}".format(agent.explorationProb))
+        if episode != 0 and episode % 100 == 0 and record_weights:
             file_utils.save_rewards(rewards)
             file_utils.save_weights(agent.weights, episodic=True)
 
@@ -165,13 +168,13 @@ if __name__ == '__main__':
                     feature_extractor=feature_extractors.OpenCVBoundingBoxExtractor,
                     load_weights=False,
                     discount=0.999,
-                    explorationProb=0.4,
-                    stepSize=0.01,
+                    explorationProb=0.8,
+                    stepSize=0.003,
                     maxGradient=1)
     rewards = train_agent(gamepath, 
                         agent, 
                         n_episodes=20000, 
                         display_screen=False, 
                         record_weights=True, 
-                        reduce_exploration_prob_amount=.00001,
+                        reduce_exploration_prob_amount=.002,
                         n_frames_to_skip=4)

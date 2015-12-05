@@ -104,27 +104,22 @@ def train(gamepath,
     # load weights by file name
     # currently must be loaded by individual hidden layers
     if load_weights:
-<<<<<<< HEAD
         hidden_layer_1 = file_utils.load_model('weights/hidden0_replay.pkl')
         hidden_layer_2 = file_utils.load_model('weights/hidden1_replay.pkl')
-=======
-        hidden_layer_1 = file_utils.load_model('weights/hidden0_20.pkl')
-        hidden_layer_2 = file_utils.load_model('weights/hidden1_20.pkl')
->>>>>>> 58c59bcf67a5ffb7aafd37ec482cfb31bbdd8424
     else:
         # defining the hidden layer network structure
         # the n_hid of a prior layer must equal the n_vis of a subsequent layer
         # for q-learning the output layer must be of len(actions)
-        hidden_layer_1 = HiddenLayer(n_vis=MAX_FEATURES, n_hid=MAX_FEATURES, layer_name='hidden1', activation='tanh')
-        hidden_layer_2 = HiddenLayer(n_vis=MAX_FEATURES, n_hid=len(actions), layer_name='hidden2', activation='tanh')
-    
+        hidden_layer_1 = HiddenLayer(n_vis=MAX_FEATURES, n_hid=MAX_FEATURES, layer_name='hidden1', activation='relu')
+        hidden_layer_2 = HiddenLayer(n_vis=MAX_FEATURES, n_hid=MAX_FEATURES, layer_name='hidden2', activation='relu')
+   	hidden_layer_3 = HiddenLayer(n_vis=MAX_FEATURES, n_hid=len(actions), layer_name='hidden3', activation='relu') 
     # the output layer is currently necessary when using tanh units in the
     # hidden layer in order to prevent a theano warning
     # currently the relu unit setting of the hidden and output layers is leaky w/ alpha=0.01
     output_layer = OutputLayer(layer_name='output', activation='relu')
 
     # pass a list of layers to the constructor of the network (here called "mlp")
-    layers = [hidden_layer_1, hidden_layer_2, output_layer]
+    layers = [hidden_layer_1, hidden_layer_2, hidden_layer_3, output_layer]
     mlp = MLP(layers, discount=discount, learning_rate=learning_rate)
 
     # this call gets the symbolic output of the network
@@ -239,8 +234,10 @@ def train(gamepath,
             if use_replay_mem:
                 sars_tuple = (features, action, reward, next_features)
                 replay_mem.store(sars_tuple)
-                random_train_tuple = replay_mem.sample()
-                loss += train_model(*random_train_tuple)
+		num_samples = 5 if replay_mem.isFull() else 1
+		for i in range(0, num_samples):
+                	random_train_tuple = replay_mem.sample()
+                	loss += train_model(*random_train_tuple)
 
                 # collect for pca
                 sequence_examples.append(list(sars_tuple[0]) + [sars_tuple[1]] \
@@ -252,7 +249,6 @@ def train(gamepath,
             else:
                 # call the train model function
                 loss += train_model(features, action, reward, next_features)
-
             # prepare for the next loop through the game
             next_state["features"] = next_features
             state = next_state
@@ -296,11 +292,10 @@ def train(gamepath,
             # collect info and total reward and also reset the reward to 0 if we reach this point
             total_reward += reward
             reward = 0
-
         # collect stats from this game run    
         losses.append(loss)
         rewards.append(total_reward)
-
+	print counter
         # if we got a best reward, inform the user 
         if total_reward > best_reward and record_weights:
             best_reward = total_reward
@@ -333,21 +328,12 @@ if __name__ == '__main__':
                     n_episodes=10000, 
                     display_screen=False, 
                     record_weights=True, 
-<<<<<<< HEAD
-                    reduce_exploration_prob_amount=0.0001,
-=======
-                    reduce_exploration_prob_amount=0.001,
->>>>>>> 58c59bcf67a5ffb7aafd37ec482cfb31bbdd8424
+                    reduce_exploration_prob_amount=0.0002,
                     n_frames_to_skip=4,
-                    exploration_prob=1,
+                    exploration_prob=0.8,
                     verbose=True,
-<<<<<<< HEAD
-                    discount=0.999,
-                    learning_rate=.001,
-=======
                     discount=0.99,
-                    learning_rate=.002,
->>>>>>> 58c59bcf67a5ffb7aafd37ec482cfb31bbdd8424
+                    learning_rate=.0004,
                     load_weights=False,
                     frozen_target_update_period=5,
                     use_replay_mem=True)
