@@ -17,6 +17,8 @@ from collections import Counter
 from copy import deepcopy
 from sklearn.cluster import DBSCAN
 from sklearn.preprocessing import StandardScaler
+import hashlib
+import struct
 
 class CoordinateExtractor(object):
 
@@ -262,7 +264,7 @@ class BoundingBoxExtractor(object):
             print "features: " + str(features)
         return features
 
-def get_center(x,y,w,h): 
+def get_center(x,y,w,h):
     cx, cy = ((x + w) / 2., (y + h) / 2.)
     return cx, cy
 
@@ -275,7 +277,7 @@ class OpenCVBoundingBoxExtractor(object):
 	1. these features need to be cross features
 		e.g., (((ball-x:5),(paddle-x:10), (action-left:1)), 1)
 	2. need to incorporate action into all these cross features
-	3. need to incorporate past position with current position 
+	3. need to incorporate past position with current position
 	"""
 	def __init__(self, threshold=10):
 		self.iter = 0
@@ -343,7 +345,7 @@ class OpenCVBoundingBoxExtractor(object):
 			for c, pc in zip(centers, prev_centers):
 				derivative_pos.append(tuple(map(operator.sub, c, pc)))
 		return self.get_features_from_centers_derivatives(state, action, centers, derivative_pos)
-		
+
 	def get_features_from_centers_derivatives(self, state, action, centers, derivative_pos):
 		features = []
 		prev_action_name = 'prev-action-{}'.format(state["prev_action"])
@@ -412,7 +414,7 @@ class OpenCVBoundingBoxExtractor(object):
 class IdentityFeatureExtractor(object):
 	def __call__(self, state, action):
 		return [(k, v) for k, v in state.iteritems()]
-		
+
 class MockBoundingBoxExtractor(OpenCVBoundingBoxExtractor):
 	def __init__(self, ball_coords, prev_ball_coords):
 		super(MockBoundingBoxExtractor, self).__init__()
@@ -422,7 +424,7 @@ class MockBoundingBoxExtractor(OpenCVBoundingBoxExtractor):
 		self._paddle_y = 5
 		self._paddle_width = 13
 		self._paddle_height = 1
-		
+
 	def get_features_paddle_x(self, state, actions, paddle_x):
 		all_features = []
 		self._paddle_x = paddle_x
@@ -432,9 +434,9 @@ class MockBoundingBoxExtractor(OpenCVBoundingBoxExtractor):
 		state["screen"] = np.zeros((1,1,3))
 		for action in actions:
 			state["prev_action"] = action
-			all_features.append(self(state, action))		
+			all_features.append(self(state, action))
 		return all_features
-		
+
 class NNetOpenCVBoundingBoxExtractor(object):
 
     def __init__(self, max_features, threshold=8):
@@ -487,7 +489,7 @@ class NNetOpenCVBoundingBoxExtractor(object):
             return [b1]
 
         #cv2.rectangle(img, (x,y), (x+w, y+h), (0,255,0))
-        
+
 
     def __call__(self, state, action):
         screen = state["screen"]
@@ -513,7 +515,7 @@ class NNetOpenCVBoundingBoxExtractor(object):
             prev_centers = [(cx, cy) for (cx,cy), area in prev_centers]
         else:
             prev_centers = [(0, 0) * len(centers)]
-        
+
         position_derivatives = []
         for c, pc in zip(centers, prev_centers):
             dx, dy = c[0] - pc[0], c[1] - pc[1]
@@ -577,7 +579,6 @@ class TrackingClassifyingContourExtractor(object):
 
 
     def __call__(self, state, action):
-        start = time.time()
         screen = state["screen"]
         feats,positions = self.getCurrentFeatures(screen)  #extract raw features about contours from screen
         self.reclassify() #perform clustering on all stored features (includes new features)
@@ -594,12 +595,45 @@ class TrackingClassifyingContourExtractor(object):
 
         #Get output features by tracking vs previous frame
         returnFeatures = self.trackFeatures(labels,positions)
-        print returnFeatures
-        print labels
+        # print returnFeatures
+        returnVec = self.createVector(returnFeatures)
+        # print labels
+        # print returnVec
         prevFeatures = feats
-        end = time.time()
-        print end-start
-        return
+        return returnVec
+
+    def createVector(self,feats):
+        vec = []
+        for _ in range(0,self.numFeats):
+            vec.append(0)
+        for feat in feats:
+            idxs = []
+            test =  struct.pack('f'*len(feat), *feat)
+
+            hash_object = hashlib.md5(test)
+            hex_dig = hash_object.hexdigest()
+            idx = (int(hex_dig,16))%self.numFeats
+            vec[idx] = 1
+            idxs.append(idx)
+            hash_object = hashlib.sha224(test)
+            hex_dig = hash_object.hexdigest()
+            idx = (int(hex_dig,16))%self.numFeats
+            vec[idx] = 1
+            idxs.append(idx)
+
+            hash_object = hashlib.sha256(test)
+            hex_dig = hash_object.hexdigest()
+            idx = (int(hex_dig,16))%self.numFeats
+            vec[idx] = 1
+            idxs.append(idx)
+
+            hash_object = hashlib.sha384(test)
+            hex_dig = hash_object.hexdigest()
+            idx = (int(hex_dig,16))%self.numFeats
+            vec[idx] = 1
+            idxs.append(idx)
+            # print idxs
+        return vec
 
     def getCurrentFeatures(self,screen):
         img = screen #store screen in image
