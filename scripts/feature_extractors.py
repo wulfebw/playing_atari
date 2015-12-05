@@ -608,6 +608,12 @@ class TrackingClassifyingContourExtractor(object):
             vec.append(0)
         for feat in feats:
             idxs = []
+            cat,id,px,py,dx,dy = feat
+            px = px/10
+            py = py/10
+            dx = dx > 0
+            dy = dy > 0
+            feat = (cat,px,py,dx,dy)
             test =  struct.pack('f'*len(feat), *feat)
 
             hash_object = hashlib.md5(test)
