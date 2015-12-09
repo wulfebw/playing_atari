@@ -113,6 +113,7 @@ def train_agent(gamepath,
     for episode in xrange(n_episodes):
         action = 0  
         reward = 0
+        newAction = None
 
         total_reward = 0
         counter = 0
@@ -127,7 +128,12 @@ def train_agent(gamepath,
         
         while not ale.game_over():
 
-            action = agent.getAction(state)
+            # if newAction is None then we are training an off-policy algorithm
+            # otherwise, we are training an on policy algorithm
+            if newAction is None:
+                action = agent.getAction(state)
+            else:
+                action = newAction
             reward += ale.act(action)
             if ale.lives() < lives:
               lives = ale.lives()
@@ -140,7 +146,8 @@ def train_agent(gamepath,
                         "prev_objects": state["objects"], 
                         "prev_action": state["action"], 
                         "action": action}
-            agent.incorporateFeedback(state, action, reward, new_state)
+            newAction = agent.incorporateFeedback(state, action, reward, new_state)
+
             state = new_state
             reward = 0
 

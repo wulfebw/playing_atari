@@ -21,7 +21,8 @@ class TestValueLearner(unittest.TestCase):
         discount = 1
         feature_extractor = feature_extractors.IdentityFeatureExtractor()
         exploration_prob = .3
-        ql = learning_agents.ValueLearningAlgorithm(legal_actions, discount, feature_extractor,  exploration_prob)
+        stepSize = 1
+        ql = learning_agents.ValueLearningAlgorithm(legal_actions, discount, feature_extractor,  exploration_prob, stepSize)
 
         state = {}
         action = 0

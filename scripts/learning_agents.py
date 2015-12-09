@@ -1,10 +1,11 @@
 """
 NOTE: Parts of this file are adapted from the Stanford class CS221 Artificial Intelligence.
-      It is from a homework assignement on reinforcement learning.
 """
 
 import sys, collections, math, random
 import numpy as np
+
+from eligibility_traces import EligibilityTraces
 
 MAX_FEATURE_WEIGHT_VALUE = 1000
  
@@ -24,7 +25,7 @@ class ValueLearningAlgorithm(RLAlgorithm):
     :description: base class for RL algorithms that approximate the value function.
     """
     def __init__(self, actions, discount, featureExtractor, 
-                explorationProb=0.2, stepSize=0.01, maxGradient=1):
+                explorationProb, stepSize, maxGradient=1):
         """
         :type: actions: list
         :param actions: possible actions to take
@@ -96,7 +97,7 @@ class QLearningAlgorithm(ValueLearningAlgorithm):
     :description: Class implementing the Q-learning algorithm
     """
     def __init__(self, actions, discount, featureExtractor, 
-                explorationProb=0.2, stepSize=0.01, maxGradient=1):
+                explorationProb, stepSize, maxGradient=1):
         """
         :note: please see parent class for params not described here
         """
@@ -118,26 +119,30 @@ class QLearningAlgorithm(ValueLearningAlgorithm):
 
         :type newState: dictionary
         :param newState: the new state of the game
+
+        :type rval: int or None
+        :param rval: if rval returned, then this is the next action taken
         """
         stepSize = self.stepSize
         prediction = self.getQ(state, action)        
         target = reward
         if newState != None:
-            target += self.discount * max((self.getQ(newState, newAction), newAction) for newAction in self.actions)[0]
+            target += self.discount * max(self.getQ(newState, newAction) for newAction in self.actions)
 
         update = stepSize * (prediction - target)
         update = np.clip(update, -self.maxGradient, self.maxGradient)
         for f, v in self.featureExtractor(state, action):
             self.weights[f] = self.weights[f] - update * v
             assert(self.weights[f] < MAX_FEATURE_WEIGHT_VALUE)
-
+        # return None to denote that this is a off-policy algorithm
+        return None
 
 class SARSALearningAlgorithm(ValueLearningAlgorithm):
     """
     :description: Class implementing the SARSA algorithm
     """
     def __init__(self, actions, discount, featureExtractor, 
-                explorationProb=0.2, stepSize=0.01, maxGradient=1):
+                explorationProb, stepSize, maxGradient=1):
         """
         :note: please see parent class for params not described here
         """
@@ -159,20 +164,28 @@ class SARSALearningAlgorithm(ValueLearningAlgorithm):
 
         :type newState: dictionary
         :param newState: the new state of the game
+
+        :type rval: int or None
+        :param rval: if rval returned, then this is the next action taken
         """
         stepSize = self.stepSize
         prediction = self.getQ(state, action)        
         target = reward
+        newAction = None
         if newState != None:
-            # this is the only different line from Q-learning
-            # instead of the max, choose the action elected by the current policy
-            target += self.discount * self.getAction(newState)
+            # SARSA differs from Q-learning in that it does not take the max
+            # over actions, but instead selects the action using it's policy
+            # and in that it returns the action selected
+            # so that the main training loop may use that in the next iteration
+            newAction = self.getAction(newState)
+            target += self.discount * self.getQ(newState, newAction)
 
         update = stepSize * (prediction - target)
         update = np.clip(update, -self.maxGradient, self.maxGradient)
         for f, v in self.featureExtractor(state, action):
             self.weights[f] = self.weights[f] - update * v
             assert(self.weights[f] < MAX_FEATURE_WEIGHT_VALUE)
+        return newAction
 
 
 class SARSALambdaLearningAlgorithm(ValueLearningAlgorithm):
@@ -185,12 +198,13 @@ class SARSALambdaLearningAlgorithm(ValueLearningAlgorithm):
         the two clearly.
     """
     def __init__(self, actions, discount, featureExtractor, 
-                explorationProb=0.2, stepSize=0.01, maxGradient=1):
+                explorationProb, stepSize, threshold, decay, maxGradient=1):
         """
         :note: please see parent class for params not described here
         """
-        super(SARSALearningAlgorithm, self).__init__(actions, discount, featureExtractor, 
+        super(SARSALambdaLearningAlgorithm, self).__init__(actions, discount, featureExtractor, 
                     explorationProb, stepSize, maxGradient)
+        self.eligibility_traces = EligibilityTraces(threshold, decay)
 
     def incorporateFeedback(self, state, action, reward, newState):
         """
@@ -207,17 +221,36 @@ class SARSALambdaLearningAlgorithm(ValueLearningAlgorithm):
 
         :type newState: dictionary
         :param newState: the new state of the game
+
+        :type rval: int or None
+        :param rval: if rval returned, then this is the next action taken
         """
         stepSize = self.stepSize
-        prediction = self.getQ(state, action)        
+        prediction = self.getQ(state, action)
+        self.eligibility_traces.update_all()        
         target = reward
+        newAction = None
         if newState != None:
-            # this is the only different line from Q-learning
-            # instead of the max, choose the action elected by the current policy
-            target += self.discount * self.getAction(newState)
+            # SARSA differs from Q-learning in that it does not take the max
+            # over actions, but instead selects the action using it's policy
+            # and in that it returns the action selected
+            # so that the main training loop may use that in the next iteration
+            newAction = self.getAction(newState)
+            target += self.discount * self.getQ(newState, newAction)
 
         update = stepSize * (prediction - target)
         update = np.clip(update, -self.maxGradient, self.maxGradient)
+
         for f, v in self.featureExtractor(state, action):
-            self.weights[f] = self.weights[f] - update * v
+            ### v might actually be 1 ###
+            self.eligibility_traces[f] += v
+
+        for f, e in self.eligibility_traces.iteritems():
+            #print 'update * e: {} applied to {}, e: {}, update: {}'.format(-1 * update * e, f, e, update)
+            self.weights[f] -= update * e
             assert(self.weights[f] < MAX_FEATURE_WEIGHT_VALUE)
+
+        return newAction
+
+
+
