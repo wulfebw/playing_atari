@@ -697,8 +697,13 @@ class TrackingClassifyingContourExtractor(object):
             self.iter = self.iter + 1
         for idx,cont in enumerate(contours):
             M = cv2.moments(cont)
-            x = int(M['m10']/M['m00']) #centroid x
-            y = int(M['m01']/M['m00']) #centroid y
+            if (len(filter(lambda x: x==0, M.values())) > 0):
+                x,y,w,h = cv2.boundingRect(cont)
+                x = x+w/2
+                y = y + h/2
+            else:
+                x = int(M['m10']/M['m00']) #centroid x
+                y = int(M['m01']/M['m00']) #centroid y
             positions.append((x,y))  #add position of feature to structure
 
             mask = np.zeros(imgray.shape,np.uint8) #create mask
