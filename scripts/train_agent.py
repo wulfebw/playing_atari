@@ -110,7 +110,6 @@ def train_agent(gamepath, agent, n_episodes, display_screen, record_weights,
 
         if total_reward > best_reward and record_weights:
             best_reward = total_reward
-            file_utils.save_weights(agent.weights)
             print("Best reward: {}".format(total_reward))
 
         if episode % PRINT_TRAINING_INFO_PERIOD == 0:
@@ -128,7 +127,7 @@ def train_agent(gamepath, agent, n_episodes, display_screen, record_weights,
             
         if episode != 0 and episode % RECORD_WEIGHTS_PERIOD == 0 and record_weights:
             file_utils.save_rewards(rewards)
-            file_utils.save_weights(agent.weights, filename='episode-{}-{}-weights.pkl'.format(episode, type(agent).__name__))
+            file_utils.save_weights(agent.weights, filename='episode-{}-{}-weights'.format(episode, type(agent).__name__))
 
         if agent.explorationProb > MINIMUM_EXPLORATION_EPSILON:
             agent.explorationProb -= reduce_exploration_prob_amount

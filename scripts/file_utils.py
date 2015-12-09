@@ -13,7 +13,7 @@ import mlp
 
 def save_weights(weights, filename):
     output_filepath = "weights/{}.pkl".format(filename)
-    with open(output_filename, 'wb') as f:
+    with open(output_filepath, 'wb') as f:
         pickle.dump(weights, f)
 
 def load_weights(filename):
