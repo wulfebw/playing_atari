@@ -553,7 +553,7 @@ class TrackingClassifyingContourExtractor(object):
         if self.debug:
             os.system('rm -r subimgs/*')
 
-        #Cap output features 
+        #Cap output features
         self.max_features = max_features
         self.numFeats = max_features
 
@@ -597,13 +597,43 @@ class TrackingClassifyingContourExtractor(object):
         self.addExamples(feats,labels)
 
         #Get output features by tracking vs previous frame
-        returnFeatures = self.trackFeatures(labels,positions)
+        finalFeatures = self.trackFeatures(labels,positions)
+        out = self.makeVector(finalFeatures,action)
+        # print labels
+        # print out
+        return out
         # print returnFeatures
         returnVec = self.createVector(returnFeatures)
-        # print labels
+        print labels
         # print returnVec
         prevFeatures = feats
         return map(float, returnVec)
+
+    def makeVector(self,feats,action):
+        returnFeats = Counter()
+        feats = sorted(feats)
+        for ii in range(0,len(feats)):
+            feat= feats[ii]
+            cat,id,x,y,dx,dy = feat
+            x = x/5
+            y = y/5
+            returnFeats[('x',cat,x,'action',action)] += 1
+            returnFeats[('y',cat,y,'action',action)] += 1
+            returnFeats[('dx',cat,dx>0,'action',action)] += 1
+            returnFeats[('dy',cat,dy>0,'action',action)] += 1
+            for jj in range(ii,len(feats)):
+                cross = feats[jj]
+                if cross is feat:
+                    continue
+                cat2,id2,x2,y2,dx2,dy2 = cross
+                # print cat,cat2
+                x2 = x2/5
+                y2 = y2/5
+                returnFeats[('cx',cat,cat2,x-x2,'action',action)] +=1
+                returnFeats[('cy',cat,cat2,y-y2,'action',action)] +=1
+                returnFeats[('cdx',cat,cat2,(dx-dx2)>0,'action',action)] +=1
+                returnFeats[('cdy',cat,cat2,(dy-dy2)>0,'action',action)] +=1
+        return returnFeats
 
     def createVector(self,feats):
         vec = []
@@ -655,7 +685,10 @@ class TrackingClassifyingContourExtractor(object):
         closed = cv2.morphologyEx(edges, cv2.MORPH_CLOSE, kernel)
 
         #detect contours from modified image
-        contours, _ = cv2.findContours(closed,cv2.RETR_TREE,cv2.CHAIN_APPROX_SIMPLE)
+        try:
+            contours = cv2.findContours(closed,cv2.RETR_TREE,cv2.CHAIN_APPROX_SIMPLE)[1]
+        except:
+            contours, _ = cv2.findContours(closed,cv2.RETR_TREE,cv2.CHAIN_APPROX_SIMPLE)
         feats = []
         positions = []
         if self.debug:
@@ -707,7 +740,8 @@ class TrackingClassifyingContourExtractor(object):
             data = Counter(newLabel)
             newMode = data.most_common(1)[0][0] #find most common new label given
             if newMode is not key: #New iteration assigned different label
-                relabelings[newMode] = key
+                if newMode not in relabelings:
+                    relabelings[newMode] = key
             else: #new iteration assigned same label
                 relabelings[key] = key
             idx += len(self.featureExamples[key])
