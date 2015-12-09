@@ -1,10 +1,8 @@
 """
 :description: train an agent to play a game
 """
-
 import os
 import sys
-
 import numpy as np
 
 # atari learning environment imports
@@ -13,68 +11,26 @@ from ale_python_interface import ALEInterface
 # custom imports
 import file_utils
 import screen_utils
-import feature_extractors
-import learning_agents
+import build_agent
 
-PRINT_TRAINING_INFO_PERIOD = 25
-RECORD_WEIGHTS_PERIOD = 100
+######## training parameters #########
+NUM_EPISODES = 10000
+EXPLORATION_REDUCTION_AMOUNT = .001
+MINIMUM_EXPLORATION_EPSILON = .05
+NUM_FRAMES_TO_SKIP = 4
+######################################
+
+########## training options ##########
+DISPLAY_SCREEN = False
+PRINT_TRAINING_INFO_PERIOD = 1
 NUM_EPISODES_AVERAGE_REWARD_OVER = 100
+RECORD_WEIGHTS = False
+RECORD_WEIGHTS_PERIOD = 100
+######################################
 
-def get_agent(gamepath,
-            learning_algorithm,
-            feature_extractor,
-            load_weights,
-            discount,
-            explorationProb,
-            stepSize,
-            maxGradient):
-    """
-    :description: instantiates an agent
 
-    :type learning_algorithm: subclass of learning_agents.RLAlgorithm
-    :param learning_algorithm: the algorithm/agent that will learn to play the game
-
-    :type feature_extractor: a callable class returning a dictionary
-    :param feature_extractor: a callable that extracts features from a state
-
-    :type load_weights: boolean
-    :param load_weights: whether or not to load in stored weights for the agent
-
-    :type discount: float
-    :param discount: discount factor applied to rewards over time
-
-    :type explorationProb: float
-    :param explorationProb: the probability that the agent takes a random action. 
-
-    :type stepSize: float
-    :param stepSize: learning rate applied to updates
-
-    :type maxGradient: float
-    :param maxGradient: maximum allowed gradient magnitude applied in gradient clipping
-    """
-    legal_actions = [0,1,3,4] 
-    # instantiate agent
-    agent = learning_algorithm(actions=legal_actions,
-                                featureExtractor=feature_extractor(),
-                                discount=discount,
-                                explorationProb=explorationProb,
-                                stepSize=stepSize,
-                                maxGradient=maxGradient)
-
-    # 3. load and set weights if we have them
-    if load_weights:
-        weights = file_utils.load_weights('episode-0-weights.pkl')
-        if weights is not None:
-            agent.weights = weights
-    return agent
-
-def train_agent(gamepath, 
-                agent, 
-                n_episodes=10000, 
-                display_screen=True, 
-                record_weights=True, 
-                reduce_exploration_prob_amount=True,
-                n_frames_to_skip=4):
+def train_agent(gamepath, agent, n_episodes, display_screen, record_weights, 
+        reduce_exploration_prob_amount, n_frames_to_skip):
     """
     :description: trains an agent to play a game 
 
@@ -161,13 +117,17 @@ def train_agent(gamepath,
         if episode % PRINT_TRAINING_INFO_PERIOD == 0:
             print("Average reward: {}".format(np.mean(rewards)))
             print("Last 50: {}".format(np.mean(rewards[-NUM_EPISODES_AVERAGE_REWARD_OVER:])))
-            print("Explore: {}".format(agent.explorationProb))
-        
+            print("Exploration probability: {}".format(agent.explorationProb))
+            print('action: \t{}'.format(action))
+            print('size of weights dict: {}'.format(len(agent.weights)))
+            avg_feat_weight = np.mean([v for k,v in agent.weights.iteritems()])
+            print('average feature weight: {}'.format(avg_feat_weight))
+            
         if episode != 0 and episode % RECORD_WEIGHTS_PERIOD == 0 and record_weights:
             file_utils.save_rewards(rewards)
-            file_utils.save_weights(agent.weights, filename='episode-{}-weights.pkl'.format(episode))
+            file_utils.save_weights(agent.weights, filename='episode-{}-{}-weights.pkl'.format(episode, type(agent).__name__))
 
-        if agent.explorationProb > .1:
+        if agent.explorationProb > MINIMUM_EXPLORATION_EPSILON:
             agent.explorationProb -= reduce_exploration_prob_amount
         
         print('episode: {} ended with score: {}'.format(episode, total_reward))
@@ -175,22 +135,12 @@ def train_agent(gamepath,
     return rewards
 
 if __name__ == '__main__':
-
-    base_dir = 'roms'
     game = 'breakout.bin'
-    gamepath = os.path.join(base_dir, game)
-    agent = get_agent(gamepath, 
-                    learning_algorithm=learning_agents.SARSALearningAlgorithm,
-                    feature_extractor=feature_extractors.OpenCVBoundingBoxExtractor,
-                    load_weights=False,
-                    discount=0.993,
-                    explorationProb=1,
-                    stepSize=0.01,
-                    maxGradient=1)
-    rewards = train_agent(gamepath, 
-                    agent, 
-                    n_episodes=10000, 
-                    display_screen=True, 
-                    record_weights=True, 
-                    reduce_exploration_prob_amount=.0001,
-                    n_frames_to_skip=4)
+    gamepath = os.path.join('roms', game)
+    agent = build_agent.build_sarsa_lambda_agent()
+    rewards = train_agent(gamepath, agent, 
+                        n_episodes=NUM_EPISODES, 
+                        display_screen=DISPLAY_SCREEN, 
+                        record_weights=RECORD_WEIGHTS, 
+                        reduce_exploration_prob_amount=EXPLORATION_REDUCTION_AMOUNT,
+                        n_frames_to_skip=NUM_FRAMES_TO_SKIP)

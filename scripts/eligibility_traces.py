@@ -7,7 +7,6 @@ class EligibilityTraces(object):
     :description: Dictionary wrapper that clips input values and can update all values
         by a constant multiple (self.decay), discarding those that fall below self.threshold.
     """
-
     def __init__(self, threshold, decay):
         self.threshold = threshold
         self.decay = decay

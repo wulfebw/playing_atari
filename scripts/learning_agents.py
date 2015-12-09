@@ -25,7 +25,8 @@ class ValueLearningAlgorithm(RLAlgorithm):
     :description: base class for RL algorithms that approximate the value function.
     """
     def __init__(self, actions, discount, featureExtractor, 
-                explorationProb, stepSize, maxGradient=1):
+                explorationProb, stepSize, maxGradient=1,
+                num_consecutive_random_actions=0):
         """
         :type: actions: list
         :param actions: possible actions to take
@@ -44,6 +45,9 @@ class ValueLearningAlgorithm(RLAlgorithm):
 
         :type maxGradient: float
         :param maxGradient: maximum gradient update allowed (i.e., applies gradient clipping)
+
+        :type num_consecutive_random_actions: int
+        :param num_consecutive_random_actions: number of times to repeat a random action
         """
         self.actions = actions
         self.discount = discount
@@ -53,6 +57,10 @@ class ValueLearningAlgorithm(RLAlgorithm):
         self.numIters = 1
         self.stepSize = stepSize
         self.maxGradient = maxGradient
+
+        self.num_consecutive_random_actions = num_consecutive_random_actions
+        self.cur_random_action_streak = 0
+        self.cur_random_action = self.actions[0]
 
     def getQ(self, state, action):
         """
@@ -77,8 +85,15 @@ class ValueLearningAlgorithm(RLAlgorithm):
         :param state: the state of the game
         """
         self.numIters += 1
+
+        if self.cur_random_action_streak > 0:
+            self.cur_random_action_streak -= 1
+            return self.cur_random_action
+
         if random.random() < self.explorationProb: 
-            return random.choice(self.actions)
+            self.current_random_action_streak = self.num_consecutive_random_actions
+            self.cur_random_action = random.choice(self.actions)
+            return self.cur_random_action
         else:
             maxAction = max((self.getQ(state, action), action) for action in self.actions)[1]
         return maxAction
@@ -251,6 +266,4 @@ class SARSALambdaLearningAlgorithm(ValueLearningAlgorithm):
             assert(self.weights[f] < MAX_FEATURE_WEIGHT_VALUE)
 
         return newAction
-
-
 

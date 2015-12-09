@@ -266,7 +266,7 @@ class BoundingBoxExtractor(object):
 
 def get_center(x,y,w,h):
     cx, cy = x + w/2., y + h/ 2.
-    return cx, cy
+    return int(cx), int(cy)
 
 def round_to(value, base):
     return int(base * round(float(value)/base))
@@ -352,7 +352,7 @@ class OpenCVBoundingBoxExtractor(object):
 		features = []
 		prev_action_name = 'prev-action-{}'.format(state["prev_action"])
 		action_name = 'action-{}'.format(action)
-		bucket_size = 10
+		bucket_size = 5
 		pos_names = []
 		# base position feature
 		for idx, (cx, cy) in enumerate(centers):
@@ -583,6 +583,8 @@ class TrackingClassifyingContourExtractor(object):
 
     def __call__(self, state, action):
         screen = state["screen"]
+        if screen.shape[0] == 32:
+            return []
         feats,positions = self.getCurrentFeatures(screen)  #extract raw features about contours from screen
         self.reclassify() #perform clustering on all stored features (includes new features)
         self.consistency() #Ensure labels are consistent from frame to frame
