@@ -10,8 +10,9 @@ import learning_agents
 ACTIONS = [0,1,3,4]
 DISCOUNT = .99
 EXPLORATION_PROBABILITY = 1
-STEP_SIZE = .001
+STEP_SIZE = .005
 MAX_GRADIENT = 10
+FEATURE_EXTRACTOR = feature_extractors.OpenCVBoundingBoxExtractor()
 ########################################
 
 ###### feature extractor options: ######
@@ -22,7 +23,7 @@ MAX_GRADIENT = 10
 ########################################
 def build_sarsa_agent():
     print 'building sarsa agent...'
-    featureExtractor = feature_extractors.OpenCVBoundingBoxExtractor()
+    featureExtractor = FEATURE_EXTRACTOR
     return learning_agents.SARSALearningAlgorithm(
                 actions=ACTIONS,
                 discount=DISCOUNT, 
@@ -34,11 +35,11 @@ def build_sarsa_agent():
 
 ######## sarsa lambda parameters #######
 THRESHOLD = .01
-DECAY = .9
+DECAY = .5
 ########################################
 def build_sarsa_lambda_agent():
     print 'building sarsa lambda agent...'
-    featureExtractor = feature_extractors.OpenCVBoundingBoxExtractor()
+    featureExtractor = FEATURE_EXTRACTOR
     return learning_agents.SARSALambdaLearningAlgorithm(
                 actions=ACTIONS,
                 discount=DISCOUNT, 
@@ -53,15 +54,13 @@ def build_sarsa_lambda_agent():
 ########################################
 def build_q_learning_agent():
     print 'building Q-learning agent...'
-    featureExtractor = feature_extractors.TrackingClassifyingContourExtractor()
+    featureExtractor = FEATURE_EXTRACTOR
     return learning_agents.QLearningAlgorithm(
                 actions=ACTIONS,
                 discount=DISCOUNT, 
                 featureExtractor=featureExtractor, 
                 explorationProb=EXPLORATION_PROBABILITY, 
                 stepSize=STEP_SIZE, 
-                threshold=THRESHOLD, 
-                decay=DECAY, 
                 maxGradient=MAX_GRADIENT)
 ########################################
 
@@ -71,7 +70,7 @@ REPLAY_MEMORY_SAMPLE_SIZE = 10
 ########################################
 def build_q_learning_replay_memory_agent():
     print 'building Q-learning agent with replay memory...'
-    featureExtractor = feature_extractors.OpenCVBoundingBoxExtractor()
+    featureExtractor = FEATURE_EXTRACTOR
     return learning_agents.QLearningReplayMemoryAlgorithm(
                 actions=ACTIONS,
                 discount=DISCOUNT, 

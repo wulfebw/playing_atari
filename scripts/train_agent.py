@@ -14,15 +14,16 @@ import screen_utils
 import build_agent
 
 ######## training parameters #########
+LEARNING_ALGORITHM = build_agent.build_sarsa_lambda_agent()
 NUM_EPISODES = 10000
-EXPLORATION_REDUCTION_AMOUNT = .001
+EXPLORATION_REDUCTION_AMOUNT = .0005
 MINIMUM_EXPLORATION_EPSILON = .05
 NUM_FRAMES_TO_SKIP = 4
 ######################################
 
 ########## training options ##########
 DISPLAY_SCREEN = False
-PRINT_TRAINING_INFO_PERIOD = 1
+PRINT_TRAINING_INFO_PERIOD = 5
 NUM_EPISODES_AVERAGE_REWARD_OVER = 100
 RECORD_WEIGHTS = False
 RECORD_WEIGHTS_PERIOD = 25
@@ -82,7 +83,6 @@ def train_agent(gamepath, agent, n_episodes, display_screen, record_weights,
                 "action": 0 }
         
         while not ale.game_over():
-
             # if newAction is None then we are training an off-policy algorithm
             # otherwise, we are training an on policy algorithm
             if newAction is None:
@@ -139,7 +139,7 @@ def train_agent(gamepath, agent, n_episodes, display_screen, record_weights,
 if __name__ == '__main__':
     game = 'breakout.bin'
     gamepath = os.path.join('roms', game)
-    agent = build_agent.build_q_learning_replay_memory_agent()
+    agent = LEARNING_ALGORITHM
     rewards = train_agent(gamepath, agent, 
                         n_episodes=NUM_EPISODES, 
                         display_screen=DISPLAY_SCREEN, 
