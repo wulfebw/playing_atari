@@ -600,13 +600,7 @@ class TrackingClassifyingContourExtractor(object):
         out = self.makeVector(finalFeatures,action)
         # print labels
         # print out
-        return out
-        # print returnFeatures
-        returnVec = self.createVector(returnFeatures)
-        print labels
-        # print returnVec
-        prevFeatures = feats
-        return map(float, returnVec)
+        return out.iteritems()
 
     def makeVector(self,feats,action):
         returnFeats = Counter()
@@ -685,9 +679,9 @@ class TrackingClassifyingContourExtractor(object):
 
         #detect contours from modified image
         try:
-            contours = cv2.findContours(closed,cv2.RETR_TREE,cv2.CHAIN_APPROX_SIMPLE)[1]
+            contours, _ = cv2.findContours(closed,cv2.RETR_TREE,cv2.CHAIN_APPROX_SIMPLE)      
         except:
-            contours, _ = cv2.findContours(closed,cv2.RETR_TREE,cv2.CHAIN_APPROX_SIMPLE)
+            contours = cv2.findContours(closed,cv2.RETR_TREE,cv2.CHAIN_APPROX_SIMPLE)[1]
         feats = []
         positions = []
         if self.debug:
