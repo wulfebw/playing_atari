@@ -265,7 +265,7 @@ class BoundingBoxExtractor(object):
         return features
 
 def get_center(x,y,w,h):
-    cx, cy = ((x + w) / 2., (y + h) / 2.)
+    cx, cy = x + w/2., y + h/ 2.
     return cx, cy
 
 def round_to(value, base):
@@ -320,6 +320,8 @@ class OpenCVBoundingBoxExtractor(object):
 	def __call__(self, state, action):
 		screen = state["screen"]
 		self.found_centers = []
+                if screen.shape[0] == 32:
+                    return []
 		try:
 			if (len(screen[0][0]) != 3):
 				return []
@@ -543,7 +545,7 @@ class NNetOpenCVBoundingBoxExtractor(object):
 
 class TrackingClassifyingContourExtractor(object):
 
-    def __init__(self, max_features=100, debug=False):
+    def __init__(self, max_features=3000, debug=False):
 
         #used for subimg storing for debugging
         self.iter = 0
@@ -551,8 +553,9 @@ class TrackingClassifyingContourExtractor(object):
         if self.debug:
             os.system('rm -r subimgs/*')
 
-        #Cap output features CURRENTLY NOT IMPLEMENTED
+        #Cap output features 
         self.max_features = max_features
+        self.numFeats = max_features
 
         #Storage of old features for consistent matching
         self.storedFeatures = []
@@ -600,7 +603,7 @@ class TrackingClassifyingContourExtractor(object):
         # print labels
         # print returnVec
         prevFeatures = feats
-        return returnVec
+        return map(float, returnVec)
 
     def createVector(self,feats):
         vec = []
@@ -608,6 +611,12 @@ class TrackingClassifyingContourExtractor(object):
             vec.append(0)
         for feat in feats:
             idxs = []
+            cat,id,px,py,dx,dy = feat
+            px = px/10
+            py = py/10
+            dx = dx > 0
+            dy = dy > 0
+            feat = (cat,px,py,dx,dy)
             test =  struct.pack('f'*len(feat), *feat)
 
             hash_object = hashlib.md5(test)
@@ -646,7 +655,7 @@ class TrackingClassifyingContourExtractor(object):
         closed = cv2.morphologyEx(edges, cv2.MORPH_CLOSE, kernel)
 
         #detect contours from modified image
-        contours = cv2.findContours(closed,cv2.RETR_TREE,cv2.CHAIN_APPROX_SIMPLE)[1]
+        contours, _ = cv2.findContours(closed,cv2.RETR_TREE,cv2.CHAIN_APPROX_SIMPLE)
         feats = []
         positions = []
         if self.debug:
@@ -743,6 +752,8 @@ class TrackingClassifyingContourExtractor(object):
                 oldPids = []
             for oldPos,oldId in oldPids:  #for each position and objectid on the previous screen with the same label
                 minDist = float("inf")
+                if not positions:
+                    break
                 for newPos in positions:  #find the new object with that label that is the closest to the old one
                     dist = math.sqrt((newPos[0]-oldPos[0])**2+(newPos[1]-oldPos[1])**2)
                     if dist < minDist:

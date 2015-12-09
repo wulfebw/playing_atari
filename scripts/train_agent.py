@@ -16,6 +16,10 @@ import screen_utils
 import feature_extractors
 import learning_agents
 
+PRINT_TRAINING_INFO_PERIOD = 25
+RECORD_WEIGHTS_PERIOD = 100
+NUM_EPISODES_AVERAGE_REWARD_OVER = 100
+
 def get_agent(gamepath,
             learning_algorithm,
             feature_extractor,
@@ -27,32 +31,31 @@ def get_agent(gamepath,
     """
     :description: instantiates an agent
 
-    :type gamepath: string 
-    :param gamepath: path to the binary of the game to be played
+    :type learning_algorithm: subclass of learning_agents.RLAlgorithm
+    :param learning_algorithm: the algorithm/agent that will learn to play the game
 
-    :type ReinforcementLearner: subclass of learning_agents.RLAlgorithm
-    :param ReinforcementLearner: the algorithm/agent that will learn to play the game
+    :type feature_extractor: a callable class returning a dictionary
+    :param feature_extractor: a callable that extracts features from a state
+
+    :type load_weights: boolean
+    :param load_weights: whether or not to load in stored weights for the agent
 
     :type discount: float
     :param discount: discount factor applied to rewards over time
 
     :type explorationProb: float
     :param explorationProb: the probability that the agent takes a random action. 
-                            just assuming epsilon-greedy.
 
-    :type load_weights: boolean
-    :param load_weights: whether or not to load in stored weights for the agent
+    :type stepSize: float
+    :param stepSize: learning rate applied to updates
 
+    :type maxGradient: float
+    :param maxGradient: maximum allowed gradient magnitude applied in gradient clipping
     """
-    
-    # 3 goes right
-    # 4 goes left
-    legal_actions = np.array([0,1,3,4]) # ale.getLegalActionSet()
-
-    # 2. instantiate and return agent
-    fe = feature_extractor()
+    legal_actions = [0,1,3,4] 
+    # instantiate agent
     agent = learning_algorithm(actions=legal_actions,
-                                featureExtractor=fe,
+                                featureExtractor=feature_extractor(),
                                 discount=discount,
                                 explorationProb=explorationProb,
                                 stepSize=stepSize,
@@ -60,10 +63,9 @@ def get_agent(gamepath,
 
     # 3. load and set weights if we have them
     if load_weights:
-        weights = file_utils.load_weights()
+        weights = file_utils.load_weights('episode-0-weights.pkl')
         if weights is not None:
             agent.weights = weights
-
     return agent
 
 def train_agent(gamepath, 
@@ -104,25 +106,26 @@ def train_agent(gamepath,
         ale.setBool('display_screen', True)
 
     ale.loadROM(gamepath)
+    ale.setInt("frame_skip", n_frames_to_skip)
 
-    rewards = [-5]
-    best_reward = 5
+    rewards = []
+    best_reward = 0
     for episode in xrange(n_episodes):
+        action = 0  
+        reward = 0
 
         total_reward = 0
-        action = 1
         counter = 0
-        reward = 0
         lives = ale.lives()
-        preprocessor = screen_utils.RGBScreenPreprocessor()
-        screen = np.zeros((preprocessor.dim, preprocessor.dim, preprocessor.channels), dtype=np.int8)
-        state = { "screen" : screen, "objects" : None, "prev_objects": None, "prev_action": 0, "action": 0 }
+
+        screen = np.zeros((32, 32, 3), dtype=np.int8)
+        state = { "screen" : screen, 
+                "objects" : None, 
+                "prev_objects": None, 
+                "prev_action": 0, 
+                "action": 0 }
         
         while not ale.game_over():
-            counter += 1
-            if counter % n_frames_to_skip != 0:
-                reward += ale.act(action)
-                continue
 
             action = agent.getAction(state)
             reward += ale.act(action)
@@ -132,24 +135,30 @@ def train_agent(gamepath,
             total_reward += reward
 
             new_screen = ale.getScreenRGB()
-            new_preprocessed_screen = preprocessor.preprocess(new_screen)
-            new_state = {"screen": new_preprocessed_screen, "objects": None, "prev_objects": state["objects"], "prev_action": state["action"], "action": action}
+            new_state = {"screen": new_screen, 
+                        "objects": None, 
+                        "prev_objects": state["objects"], 
+                        "prev_action": state["action"], 
+                        "action": action}
             agent.incorporateFeedback(state, action, reward, new_state)
             state = new_state
             reward = 0
 
         rewards.append(total_reward)
+
         if total_reward > best_reward and record_weights:
             best_reward = total_reward
             file_utils.save_weights(agent.weights)
-            print("best reward!: {}".format(total_reward))
-	if episode % 25 == 0:
-		print("Avg reward: {}".format(np.mean(rewards)))
-		print("Last 50: {}".format(np.mean(rewards[-50:])))
-		print("Explore: {}".format(agent.explorationProb))
-        if episode != 0 and episode % 100 == 0 and record_weights:
+            print("Best reward: {}".format(total_reward))
+
+        if episode % PRINT_TRAINING_INFO_PERIOD == 0:
+            print("Average reward: {}".format(np.mean(rewards)))
+            print("Last 50: {}".format(np.mean(rewards[-NUM_EPISODES_AVERAGE_REWARD_OVER:])))
+            print("Explore: {}".format(agent.explorationProb))
+        
+        if episode != 0 and episode % RECORD_WEIGHTS_PERIOD == 0 and record_weights:
             file_utils.save_rewards(rewards)
-            file_utils.save_weights(agent.weights, episodic=True)
+            file_utils.save_weights(agent.weights, filename='episode-{}-weights.pkl'.format(episode))
 
         if agent.explorationProb > .1:
             agent.explorationProb -= reduce_exploration_prob_amount
@@ -167,14 +176,14 @@ if __name__ == '__main__':
                     learning_algorithm=learning_agents.QLearningAlgorithm,
                     feature_extractor=feature_extractors.OpenCVBoundingBoxExtractor,
                     load_weights=False,
-                    discount=0.999,
-                    explorationProb=0.8,
-                    stepSize=0.003,
+                    discount=0.993,
+                    explorationProb=1,
+                    stepSize=0.01,
                     maxGradient=1)
     rewards = train_agent(gamepath, 
-                        agent, 
-                        n_episodes=20000, 
-                        display_screen=False, 
-                        record_weights=True, 
-                        reduce_exploration_prob_amount=.002,
-                        n_frames_to_skip=4)
+                    agent, 
+                    n_episodes=10000, 
+                    display_screen=True, 
+                    record_weights=True, 
+                    reduce_exploration_prob_amount=.001,
+                    n_frames_to_skip=4)

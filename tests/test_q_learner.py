@@ -69,7 +69,5 @@ class TestQLearner(unittest.TestCase):
 		expected = collections.Counter({'test_feature': 2})
 		self.assertEquals(actual, expected)
 
-	def test_getQ_incorporating_feedback_longterm(self):
-		pass
 
 

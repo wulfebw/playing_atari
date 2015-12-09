@@ -67,10 +67,10 @@ class RGBScreenPreprocessor(ScreenPreprocessor):
         # currently this just takes the section of the screen with the ball and the block
         height, width, channels = screen.shape
         #screen = screen.reshape(screen.shape[0], screen.shape[1], )
-        screen = screen[int(height*.5):, int(width*.05): int(width*.95), :]
+        screen = screen[:, :int(width*.95), :]
         if False:
             cv2.imshow('screen', screen)
-            # # x = raw_input()
+            #x = raw_input()
             # # if x == 'x':
             # #     filepath = '/Users/wulfe/Dropbox/School/Stanford/autumn_2015/cs221/project/playing_atari/tests/data/opencv_fe_test_2_img.jpg'
             #       cv2.imwrite(filepath, screen)

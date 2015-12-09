@@ -1,32 +1,49 @@
+"""
+NOTE: Parts of this file are adapted from the Stanford class CS221 Artificial Intelligence.
+      It is from a homework assignement on reinforcement learning.
+"""
+
 import sys, collections, math, random
 import numpy as np
 
-# Abstract class: an RLAlgorithm performs reinforcement learning.  All it needs
-# to know is the set of available actions to take.  The simulator (see
-# simulate()) will call getAction() to get an action, perform the action, and
-# then provide feedback (via incorporateFeedback()) to the RL algorithm, so it can adjust
-# its parameters.
+MAX_FEATURE_WEIGHT_VALUE = 1000
+ 
 class RLAlgorithm:
-    # Your algorithm will be asked to produce an action given a state.
-    def getAction(self, state): raise NotImplementedError("Override me")
+    """
+    :description: abstract class defining the interface of a RL algorithm
+    """
 
-    # We will call this function when simulating an MDP, and you should update
-    # parameters.
-    # If |state| is a terminal state, this function will be called with (s, a,
-    # 0, None). When this function is called, it indicates that taking action
-    # |action| in state |state| resulted in reward |reward| and a transition to state
-    # |newState|.
-    def incorporateFeedback(self, state, action, reward, newState): raise NotImplementedError("Override me")
+    def getAction(self, state): 
+        raise NotImplementedError("Override me")
 
+    def incorporateFeedback(self, state, action, reward, newState): 
+        raise NotImplementedError("Override me")
 
-# Performs Q-learning.  Read util.RLAlgorithm for more information.
-# actions: a function that takes a state and returns a list of actions.
-# discount: a number between 0 and 1, which determines the discount factor
-# featureExtractor: a function that takes a state and action and returns a list of (feature name, feature value) pairs.
-# explorationProb: the epsilon value indicating how frequently the policy
-# returns a random action
 class QLearningAlgorithm(RLAlgorithm):
-    def __init__(self, actions, discount, featureExtractor, explorationProb=0.2, stepSize=0.01, maxGradient=1):
+    """
+    :description: Class implementing the Q-learning algorithm
+    """
+    def __init__(self, actions, discount, featureExtractor, 
+                explorationProb=0.2, stepSize=0.01, maxGradient=1):
+        """
+        :type: actions: list
+        :param actions: possible actions to take
+
+        :type discount: float
+        :param discount: the discount factor
+
+        :type featureExtractor: callable returning dictionary 
+        :param featureExtractor: returns the features extracted from a state
+
+        :type explorationProb: float
+        :param explorationProb: probability of taking a random action
+
+        :type stepSize: float
+        :param stepSize: learning rate
+
+        :type maxGradient: float
+        :param maxGradient: maximum gradient update allowed (i.e., applies gradient clipping)
+        """
         self.actions = actions
         self.discount = discount
         self.featureExtractor = featureExtractor
@@ -37,48 +54,68 @@ class QLearningAlgorithm(RLAlgorithm):
         self.target_weights = self.weights
         self.maxGradient = maxGradient
 
-    # Return the Q function associated with the weights and features
-    def getQ(self, state, action, weights=None):
-        if weights is None:
-            weights = self.weights
+    def getQ(self, state, action):
+        """
+        :description: returns the Q value associated with this state-action pair
+
+        :type state: dictionary
+        :param state: the state of the game
+
+        :type action: int 
+        :param action: the action for which to retrieve the Q-value
+        """
         score = 0
         for f, v in self.featureExtractor(state, action):
-            score += weights[f] * v
+            score += self.weights[f] * v
         return score
 
-    # This algorithm will produce an action given a state.
-    # Here we use the epsilon-greedy algorithm: with probability
-    # |explorationProb|, take a random action.
     def getAction(self, state):
+        """
+        :description: returns an action accoridng to epsilon-greedy policy
+
+        :type state: dictionary
+        :param state: the state of the game
+        """
         self.numIters += 1
-        if self.numIters % 5 == 0:
-            self.target_weights = self.weights
         if random.random() < self.explorationProb: 
             return random.choice(self.actions)
         else:
             maxAction = max((self.getQ(state, action), action) for action in self.actions)[1]
         return maxAction
 
-    # Call this function to get the step size to update the weights.
     def getStepSize(self):
+        """
+        :description: return the step size
+        """
         return self.stepSize
 
-    # We will call this function with (s, a, r, s'), which you should use to update |weights|.
-    # Note that if s is a terminal state, then s' will be None.  Remember to check for this.
-    # You should update the weights using self.getStepSize(); use
-    # self.getQ() to compute the current estimate of the parameters.
     def incorporateFeedback(self, state, action, reward, newState):
-        stepSize = self.getStepSize()
+        """
+        :description: performs a Q-learning update 
+
+        :type state: dictionary
+        :param state: the state of the game
+
+        :type action: int 
+        :param action: the action for which to retrieve the Q-value
+
+        :type reward: float
+        :param reward: reward associated with being in newState
+
+        :type newState: dictionary
+        :param newState: the new state of the game
+        """
+        stepSize = self.stepSize
         prediction = self.getQ(state, action)        
         target = reward
         if newState != None:
-            target += self.discount * max((self.getQ(newState, newAction, self.target_weights), newAction) for newAction in self.actions)[0]
+            target += self.discount * max((self.getQ(newState, newAction), newAction) for newAction in self.actions)[0]
 
-        update = stepSize*(prediction - target)
+        update = stepSize * (prediction - target)
         update = np.clip(update, -self.maxGradient, self.maxGradient)
         for f, v in self.featureExtractor(state, action):
-            self.weights[f] = self.weights[f] - update*v
-            assert(self.weights[f] < 10000)
+            self.weights[f] = self.weights[f] - update * v
+            assert(self.weights[f] < MAX_FEATURE_WEIGHT_VALUE)
 
 
 

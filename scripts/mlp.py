@@ -12,12 +12,23 @@ import numpy as np
 import theano
 import theano.tensor as T
 
+def get_relu(alpha):
+    """
+    This is necessary because the hidden layer class does not have access to the 
+    'x' value at the time of creating this function so we must must pass around
+    a function object instead. We do have access to alpha, though, and want to 
+    set it to the specified value within the HiddenLayer class. 
+    """
+    def relu(x):
+        return T.maximum(x, alpha * x)
+    return relu
+
 class MLP(object):
     """
     :description: the MLP class acts as a wrapper around the layers of the network.
     """
 
-    def __init__(self, layers, discount, learning_rate):
+    def __init__(self, layers, discount, learning_rate, freeze_targets=True):
         """
         :type layers: list of objects
         :param layers: list of the layers (in order) of this mlp
@@ -32,6 +43,7 @@ class MLP(object):
         self.frozen_layers = copy.deepcopy(layers)
         self.discount = discount
         self.learning_rate = learning_rate
+        self.freeze_targets = freeze_targets
 
     def fprop(self, features, freeze=False):
         """
@@ -45,7 +57,7 @@ class MLP(object):
                     (i.e., the Q values for each action stored in a vector - so rval[0] would be 
                     the Q value for action 0). 
         """
-        if freeze:
+        if freeze and self.freeze_targets:
             layers = self.frozen_layers
         else:
             layers = self.layers
@@ -92,17 +104,11 @@ class MLP(object):
         updates = [(param, param - self.learning_rate * gparam) for param, gparam in zip(params, gparams)]
         return (loss, updates)
 
-    def get_params(self, freeze=False):
+    def get_params(self):
         """
         :description: return a list of the parameters from each layer of this network (1-d list)
         """
-        if freeze:
-            layers = self.frozen_layers
-        else:
-            layers = self.layers
-
-        params = []
-        for layer in layers:
+        for layer in self.layers:
             params += layer.params
         return params
 
@@ -111,7 +117,7 @@ class HiddenLayer(object):
     :description: hidden layer performs multiplication X*Theta and then elementwise nonlinearity
     """
 
-    def __init__(self, n_vis, n_hid, layer_name, activation, param_init_range=0.02):
+    def __init__(self, n_vis, n_hid, layer_name, activation, param_init_range=0.02, alpha=0.01):
         """
         :type n_vis: int 
         :param n_vis: the number of input nodes to this layer (i.e., input space)
@@ -139,9 +145,7 @@ class HiddenLayer(object):
         elif activation == 'tanh':
             self.activation = theano.tensor.tanh
         elif activation == 'relu':
-            def relu(x):
-                return T.maximum(x, 0.01 * x)
-            self.activation = relu
+            self.activation = get_relu(alpha)
         else: 
             raise ValueError("activation argument must be one of {sigmoid, tanh, relu}")
 
@@ -165,10 +169,10 @@ class HiddenLayer(object):
 
 class OutputLayer(object):
     """
-    :description: output layer class does not have parameters, but instead just performs elementwise nonlinearity 
+    :description: output layer class does not have parameters, but instead just performs an elementwise function
     """
 
-    def __init__(self, layer_name, activation):
+    def __init__(self, layer_name, activation, alpha=0.01):
         """
         :type layer_name: string
         :param layer_name: the name used in labeling the parameters of this layer
@@ -188,9 +192,7 @@ class OutputLayer(object):
         elif activation == 'tanh':
             self.activation = theano.tensor.tanh
         elif activation == 'relu':
-            def relu(x):
-                return T.maximum(x, 0.01 * x)
-            self.activation = relu
+            self.activation = get_relu(alpha)
         else: 
             raise ValueError("activation argument must be one of {sigmoid, tanh, relu}")
         
