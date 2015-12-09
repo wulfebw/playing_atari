@@ -108,6 +108,7 @@ class MLP(object):
         """
         :description: return a list of the parameters from each layer of this network (1-d list)
         """
+        params = []
         for layer in self.layers:
             params += layer.params
         return params
