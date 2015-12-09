@@ -28,7 +28,6 @@ RECORD_WEIGHTS = False
 RECORD_WEIGHTS_PERIOD = 25
 ######################################
 
-
 def train_agent(gamepath, agent, n_episodes, display_screen, record_weights, 
         reduce_exploration_prob_amount, n_frames_to_skip):
     """
@@ -115,7 +114,8 @@ def train_agent(gamepath, agent, n_episodes, display_screen, record_weights,
             print("Best reward: {}".format(total_reward))
 
         if episode % PRINT_TRAINING_INFO_PERIOD == 0:
-            print '\n### training information ###'
+            print '\n############################'
+            print '### training information ###'
             print("Average reward: {}".format(np.mean(rewards)))
             print("Last 50: {}".format(np.mean(rewards[-NUM_EPISODES_AVERAGE_REWARD_OVER:])))
             print("Exploration probability: {}".format(agent.explorationProb))
@@ -123,6 +123,7 @@ def train_agent(gamepath, agent, n_episodes, display_screen, record_weights,
             print('size of weights dict: {}'.format(len(agent.weights)))
             avg_feat_weight = np.mean([v for k,v in agent.weights.iteritems()])
             print('average feature weight: {}'.format(avg_feat_weight))
+            print '############################'
             print '############################\n'
             
         if episode != 0 and episode % RECORD_WEIGHTS_PERIOD == 0 and record_weights:
@@ -139,7 +140,7 @@ def train_agent(gamepath, agent, n_episodes, display_screen, record_weights,
 if __name__ == '__main__':
     game = 'breakout.bin'
     gamepath = os.path.join('roms', game)
-    agent = build_agent.build_sarsa_lambda_agent()
+    agent = build_agent.build_q_learning_replay_memory_agent()
     rewards = train_agent(gamepath, agent, 
                         n_episodes=NUM_EPISODES, 
                         display_screen=DISPLAY_SCREEN, 

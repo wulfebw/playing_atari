@@ -155,17 +155,20 @@ class QLearningAlgorithm(ValueLearningAlgorithm):
 
 class QLearningReplayMemoryAlgorithm(ValueLearningAlgorithm):
     """
-    :description: Class implementing the Q-learning algorithm
+    :description: Class implementing the Q-learning algorithm with
+                replay memory, which randomly samples from past experiences
+                in order to make updates to the model parameters.
     """
     def __init__(self, actions, discount, featureExtractor, 
                 explorationProb, stepSize, maxGradient=1, 
-                replay_memory_size=1000):
+                replay_memory_size=1000, replay_memory_sample_size=5):
         """
         :note: please see parent class for params not described here
         """
-        super(QLearningAlgorithm, self).__init__(actions, discount, featureExtractor, 
+        super(QLearningReplayMemoryAlgorithm, self).__init__(actions, discount, featureExtractor, 
                     explorationProb, stepSize, maxGradient)
         self.replay_memory = ReplayMemory(replay_memory_size)
+        self.sample_size = replay_memory_sample_size
 
     def incorporateFeedback(self, state, action, reward, newState):
         """
@@ -187,16 +190,21 @@ class QLearningReplayMemoryAlgorithm(ValueLearningAlgorithm):
         :param rval: if rval returned, then this is the next action taken
         """
         stepSize = self.stepSize
-        prediction = self.getQ(state, action)        
-        target = reward
-        if newState != None:
-            target += self.discount * max(self.getQ(newState, newAction) for newAction in self.actions)
+        sars_tuple = (state, action, reward, newState)
+        self.replay_memory.store(sars_tuple)
+        num_samples = self.sample_size if self.replay_memory.isFull() else 1
+        for i in range(0, num_samples):
+            state, action, reward, newState = self.replay_memory.sample()
+            prediction = self.getQ(state, action)        
+            target = reward
+            if newState != None:
+                target += self.discount * max(self.getQ(newState, newAction) for newAction in self.actions)
 
-        update = stepSize * (prediction - target)
-        update = np.clip(update, -self.maxGradient, self.maxGradient)
-        for f, v in self.featureExtractor(state, action):
-            self.weights[f] = self.weights[f] - update * v
-            assert(self.weights[f] < MAX_FEATURE_WEIGHT_VALUE)
+            update = stepSize * (prediction - target)
+            update = np.clip(update, -self.maxGradient, self.maxGradient)
+            for f, v in self.featureExtractor(state, action):
+                self.weights[f] = self.weights[f] - update * v
+                assert(self.weights[f] < MAX_FEATURE_WEIGHT_VALUE)
         # return None to denote that this is a off-policy algorithm
         return None
 
@@ -249,7 +257,6 @@ class SARSALearningAlgorithm(ValueLearningAlgorithm):
             self.weights[f] = self.weights[f] - update * v
             assert(self.weights[f] < MAX_FEATURE_WEIGHT_VALUE)
         return newAction
-
 
 class SARSALambdaLearningAlgorithm(ValueLearningAlgorithm):
     """
