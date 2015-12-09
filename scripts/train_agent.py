@@ -139,7 +139,7 @@ def train_agent(gamepath, agent, n_episodes, display_screen, record_weights,
 if __name__ == '__main__':
     game = 'breakout.bin'
     gamepath = os.path.join('roms', game)
-    agent = build_agent.build_q_learning_replay_memory_agent()
+    agent = build_agent.build_sarsa_lambda_agent()
     rewards = train_agent(gamepath, agent, 
                         n_episodes=NUM_EPISODES, 
                         display_screen=DISPLAY_SCREEN, 

@@ -392,10 +392,10 @@ class OpenCVBoundingBoxExtractor(object):
 							other_x_pos = cx2
 					name_cross_deriv_pos = 'objects-{}-{}-dx0-{}-dy0-{}-x1-{}'.format(idx,idx2,dx,dy,cx)
 					name_cross_deriv_diff = 'objects-{}-{}-dx0-{}-dy0-{}-xdiff-{}'.format(idx,idx2,dx,dy,(cx - other_x_pos)/diff_bucket_size)
-					name_cross_deriv_pos_diff = 'objects-{}-{}-x0-{}-dx0-{}-dy0-{}-xdiff-{}'.format(idx,idx2,other_x_pos,dx,dy,(cx - other_x_pos)/diff_bucket_size)
+					#name_cross_deriv_pos_diff = 'objects-{}-{}-x0-{}-dx0-{}-dy0-{}-xdiff-{}'.format(idx,idx2,other_x_pos,dx,dy,(cx - other_x_pos)/diff_bucket_size)
 					features.append(((name_cross_deriv_pos, action_name),1))
 					features.append(((name_cross_deriv_diff, action_name),1))
-					features.append(((name_cross_deriv_pos_diff, action_name),1))
+					#features.append(((name_cross_deriv_pos_diff, action_name),1))
 		# differences
 		diff_names = []
 		for (cx0, cy0), (cx1, cy1) in zip(centers, centers[1:]):
