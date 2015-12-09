@@ -34,7 +34,7 @@ def build_sarsa_agent():
 
 ######## sarsa lambda parameters #######
 THRESHOLD = .01
-DECAY = .5
+DECAY = .9
 ########################################
 def build_sarsa_lambda_agent():
     print 'building sarsa lambda agent...'

@@ -25,7 +25,7 @@ DISPLAY_SCREEN = False
 PRINT_TRAINING_INFO_PERIOD = 1
 NUM_EPISODES_AVERAGE_REWARD_OVER = 100
 RECORD_WEIGHTS = False
-RECORD_WEIGHTS_PERIOD = 100
+RECORD_WEIGHTS_PERIOD = 25
 ######################################
 
 
@@ -115,13 +115,15 @@ def train_agent(gamepath, agent, n_episodes, display_screen, record_weights,
             print("Best reward: {}".format(total_reward))
 
         if episode % PRINT_TRAINING_INFO_PERIOD == 0:
+            print '\n### training information ###'
             print("Average reward: {}".format(np.mean(rewards)))
             print("Last 50: {}".format(np.mean(rewards[-NUM_EPISODES_AVERAGE_REWARD_OVER:])))
             print("Exploration probability: {}".format(agent.explorationProb))
-            print('action: \t{}'.format(action))
+            print('action: {}'.format(action))
             print('size of weights dict: {}'.format(len(agent.weights)))
             avg_feat_weight = np.mean([v for k,v in agent.weights.iteritems()])
             print('average feature weight: {}'.format(avg_feat_weight))
+            print '############################\n'
             
         if episode != 0 and episode % RECORD_WEIGHTS_PERIOD == 0 and record_weights:
             file_utils.save_rewards(rewards)

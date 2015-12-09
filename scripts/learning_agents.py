@@ -6,6 +6,7 @@ import sys, collections, math, random
 import numpy as np
 
 from eligibility_traces import EligibilityTraces
+from replay_memory import ReplayMemory
 
 MAX_FEATURE_WEIGHT_VALUE = 1000
  
@@ -118,6 +119,53 @@ class QLearningAlgorithm(ValueLearningAlgorithm):
         """
         super(QLearningAlgorithm, self).__init__(actions, discount, featureExtractor, 
                     explorationProb, stepSize, maxGradient)
+
+    def incorporateFeedback(self, state, action, reward, newState):
+        """
+        :description: performs a Q-learning update 
+
+        :type state: dictionary
+        :param state: the state of the game
+
+        :type action: int 
+        :param action: the action for which to retrieve the Q-value
+
+        :type reward: float
+        :param reward: reward associated with being in newState
+
+        :type newState: dictionary
+        :param newState: the new state of the game
+
+        :type rval: int or None
+        :param rval: if rval returned, then this is the next action taken
+        """
+        stepSize = self.stepSize
+        prediction = self.getQ(state, action)        
+        target = reward
+        if newState != None:
+            target += self.discount * max(self.getQ(newState, newAction) for newAction in self.actions)
+
+        update = stepSize * (prediction - target)
+        update = np.clip(update, -self.maxGradient, self.maxGradient)
+        for f, v in self.featureExtractor(state, action):
+            self.weights[f] = self.weights[f] - update * v
+            assert(self.weights[f] < MAX_FEATURE_WEIGHT_VALUE)
+        # return None to denote that this is a off-policy algorithm
+        return None
+
+class QLearningReplayMemoryAlgorithm(ValueLearningAlgorithm):
+    """
+    :description: Class implementing the Q-learning algorithm
+    """
+    def __init__(self, actions, discount, featureExtractor, 
+                explorationProb, stepSize, maxGradient=1, 
+                replay_memory_size=1000):
+        """
+        :note: please see parent class for params not described here
+        """
+        super(QLearningAlgorithm, self).__init__(actions, discount, featureExtractor, 
+                    explorationProb, stepSize, maxGradient)
+        self.replay_memory = ReplayMemory(replay_memory_size)
 
     def incorporateFeedback(self, state, action, reward, newState):
         """

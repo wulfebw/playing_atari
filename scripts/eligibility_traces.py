@@ -25,10 +25,8 @@ class EligibilityTraces(object):
         return self.ets.iteritems()
 
     def update_all(self):
-        to_remove = []
-        for f, e in self.ets.iteritems():
-            self.ets[f] = self.ets[f] * self.decay
+        for f in self.ets.keys():
             if self.ets[f] < self.threshold:
-                to_remove.append(f)
-        for f in to_remove:
-            del self.ets[f]
+                del self.ets[f]
+            else:
+                self.ets[f] = self.ets[f] * self.decay

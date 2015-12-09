@@ -29,7 +29,7 @@ class TestEligibilityTraces(unittest.TestCase):
 
     """ update_all tests """
     def test_decay_removal(self):
-        etraces = eligibility_traces.EligibilityTraces(threshold=.5, decay=.5)
+        etraces = eligibility_traces.EligibilityTraces(threshold=.5, decay=.49)
         etraces['a'] = 1
         etraces.update_all()
         predicate = 'a' in etraces
