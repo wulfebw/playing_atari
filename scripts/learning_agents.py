@@ -8,7 +8,7 @@ import numpy as np
 
 MAX_FEATURE_WEIGHT_VALUE = 1000
  
-class RLAlgorithm:
+class RLAlgorithm(object):
     """
     :description: abstract class defining the interface of a RL algorithm
     """
@@ -19,9 +19,9 @@ class RLAlgorithm:
     def incorporateFeedback(self, state, action, reward, newState): 
         raise NotImplementedError("Override me")
 
-class QLearningAlgorithm(RLAlgorithm):
+class ValueLearningAlgorithm(RLAlgorithm):
     """
-    :description: Class implementing the Q-learning algorithm
+    :description: base class for RL algorithms that approximate the value function.
     """
     def __init__(self, actions, discount, featureExtractor, 
                 explorationProb=0.2, stepSize=0.01, maxGradient=1):
@@ -51,7 +51,6 @@ class QLearningAlgorithm(RLAlgorithm):
         self.weights = collections.Counter()
         self.numIters = 1
         self.stepSize = stepSize
-        self.target_weights = self.weights
         self.maxGradient = maxGradient
 
     def getQ(self, state, action):
@@ -89,6 +88,21 @@ class QLearningAlgorithm(RLAlgorithm):
         """
         return self.stepSize
 
+    def incorporateFeedback(self, state, action, reward, newState): 
+        raise NotImplementedError("Override me")
+
+class QLearningAlgorithm(ValueLearningAlgorithm):
+    """
+    :description: Class implementing the Q-learning algorithm
+    """
+    def __init__(self, actions, discount, featureExtractor, 
+                explorationProb=0.2, stepSize=0.01, maxGradient=1):
+        """
+        :note: please see parent class for params not described here
+        """
+        super(QLearningAlgorithm, self).__init__(actions, discount, featureExtractor, 
+                    explorationProb, stepSize, maxGradient)
+
     def incorporateFeedback(self, state, action, reward, newState):
         """
         :description: performs a Q-learning update 
@@ -118,4 +132,92 @@ class QLearningAlgorithm(RLAlgorithm):
             assert(self.weights[f] < MAX_FEATURE_WEIGHT_VALUE)
 
 
+class SARSALearningAlgorithm(ValueLearningAlgorithm):
+    """
+    :description: Class implementing the SARSA algorithm
+    """
+    def __init__(self, actions, discount, featureExtractor, 
+                explorationProb=0.2, stepSize=0.01, maxGradient=1):
+        """
+        :note: please see parent class for params not described here
+        """
+        super(SARSALearningAlgorithm, self).__init__(actions, discount, featureExtractor, 
+                    explorationProb, stepSize, maxGradient)
 
+    def incorporateFeedback(self, state, action, reward, newState):
+        """
+        :description: performs a SARSA update 
+
+        :type state: dictionary
+        :param state: the state of the game
+
+        :type action: int 
+        :param action: the action for which to retrieve the Q-value
+
+        :type reward: float
+        :param reward: reward associated with being in newState
+
+        :type newState: dictionary
+        :param newState: the new state of the game
+        """
+        stepSize = self.stepSize
+        prediction = self.getQ(state, action)        
+        target = reward
+        if newState != None:
+            # this is the only different line from Q-learning
+            # instead of the max, choose the action elected by the current policy
+            target += self.discount * self.getAction(newState)
+
+        update = stepSize * (prediction - target)
+        update = np.clip(update, -self.maxGradient, self.maxGradient)
+        for f, v in self.featureExtractor(state, action):
+            self.weights[f] = self.weights[f] - update * v
+            assert(self.weights[f] < MAX_FEATURE_WEIGHT_VALUE)
+
+
+class SARSALambdaLearningAlgorithm(ValueLearningAlgorithm):
+    """
+    :description: Class implementing the SARSA Lambda algorithm. This 
+        class is equivalent to the SARSALearningAlgorithm class when
+        self.lambda is set to 0; however, we keep it separate here
+        because it imposes an overhead of tracking eligibility
+        traces and because it is nice to see the difference between
+        the two clearly.
+    """
+    def __init__(self, actions, discount, featureExtractor, 
+                explorationProb=0.2, stepSize=0.01, maxGradient=1):
+        """
+        :note: please see parent class for params not described here
+        """
+        super(SARSALearningAlgorithm, self).__init__(actions, discount, featureExtractor, 
+                    explorationProb, stepSize, maxGradient)
+
+    def incorporateFeedback(self, state, action, reward, newState):
+        """
+        :description: performs a SARSA update 
+
+        :type state: dictionary
+        :param state: the state of the game
+
+        :type action: int 
+        :param action: the action for which to retrieve the Q-value
+
+        :type reward: float
+        :param reward: reward associated with being in newState
+
+        :type newState: dictionary
+        :param newState: the new state of the game
+        """
+        stepSize = self.stepSize
+        prediction = self.getQ(state, action)        
+        target = reward
+        if newState != None:
+            # this is the only different line from Q-learning
+            # instead of the max, choose the action elected by the current policy
+            target += self.discount * self.getAction(newState)
+
+        update = stepSize * (prediction - target)
+        update = np.clip(update, -self.maxGradient, self.maxGradient)
+        for f, v in self.featureExtractor(state, action):
+            self.weights[f] = self.weights[f] - update * v
+            assert(self.weights[f] < MAX_FEATURE_WEIGHT_VALUE)

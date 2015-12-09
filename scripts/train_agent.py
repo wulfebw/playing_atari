@@ -173,7 +173,7 @@ if __name__ == '__main__':
     game = 'breakout.bin'
     gamepath = os.path.join(base_dir, game)
     agent = get_agent(gamepath, 
-                    learning_algorithm=learning_agents.QLearningAlgorithm,
+                    learning_algorithm=learning_agents.SARSALearningAlgorithm,
                     feature_extractor=feature_extractors.OpenCVBoundingBoxExtractor,
                     load_weights=False,
                     discount=0.993,
@@ -185,5 +185,5 @@ if __name__ == '__main__':
                     n_episodes=10000, 
                     display_screen=True, 
                     record_weights=True, 
-                    reduce_exploration_prob_amount=.001,
+                    reduce_exploration_prob_amount=.0001,
                     n_frames_to_skip=4)

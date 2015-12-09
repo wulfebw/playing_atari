@@ -15,20 +15,6 @@ def get_legal_actions():
 
 class TestQLearner(unittest.TestCase):
 	
-	""" getQ tests """
-	def test_getQ_init(self):
-		legal_actions = get_legal_actions()
-		discount = 1
-		feature_extractor = feature_extractors.IdentityFeatureExtractor()
-		exploration_prob = .3
-		ql = learning_agents.QLearningAlgorithm(legal_actions, discount, feature_extractor,  exploration_prob)
-
-		state = {}
-		action = 0
-		actual = ql.getQ(state, action)
-		expected = 0
-		self.assertEquals(actual, expected)
-
 	""" incorporateFeedback tests """
 	def test_getQ_incorporating_basic_feedback(self):
 		legal_actions = get_legal_actions()
