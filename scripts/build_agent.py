@@ -71,7 +71,7 @@ def build_q_learning_agent():
 ## Qlearning replay memory parameters ##
 REPLAY_MEMORY_SIZE = 100
 REPLAY_MEMORY_SAMPLE_SIZE = 10
-NUM_STATIC_TARGET_UPDATE_STEPS = 1000
+NUM_STATIC_TARGET_UPDATE_STEPS = 2500
 ########################################
 def build_q_learning_replay_memory_agent():
     print 'building Q-learning agent with replay memory...'
