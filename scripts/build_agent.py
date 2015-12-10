@@ -10,7 +10,7 @@ import learning_agents
 ACTIONS = [0,1,3,4]
 DISCOUNT = .99
 EXPLORATION_PROBABILITY = 1
-STEP_SIZE = .001
+STEP_SIZE = .0005
 MAX_GRADIENT = 10
 NUM_CONSECUTIVE_RANDOM_ACTIONS = 0 # 0 denotes only taking a random action once
 FEATURE_EXTRACTOR = feature_extractors.OpenCVBoundingBoxExtractor()
@@ -69,7 +69,7 @@ def build_q_learning_agent():
 ########################################
 
 ## Qlearning replay memory parameters ##
-REPLAY_MEMORY_SIZE = 100000
+REPLAY_MEMORY_SIZE = 1000
 REPLAY_MEMORY_SAMPLE_SIZE = 1
 NUM_STATIC_TARGET_UPDATE_STEPS = 2500
 ########################################

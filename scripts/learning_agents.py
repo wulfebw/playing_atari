@@ -231,6 +231,7 @@ class QLearningReplayMemoryAlgorithm(ValueLearningAlgorithm):
         if self.iterations % self.num_static_target_update_steps == 0:
             self.update_static_target_function()
         stepSize = self.stepSize
+	maxNew = max(self.getStaticQ(newState, newAction) for newAction in self.actions)
         sars_tuple = (state, action, reward, newState)
         self.replay_memory.store(sars_tuple)
         num_samples = self.sample_size if self.replay_memory.isFull() else 1
@@ -241,7 +242,7 @@ class QLearningReplayMemoryAlgorithm(ValueLearningAlgorithm):
             if newState != None:
                 # this is the line that implements the static target, but using the static weights
                 # for the target value
-                target += self.discount * max(self.getStaticQ(newState, newAction) for newAction in self.actions)
+                target += self.discount * maxNew
 
             update = stepSize * (prediction - target)
             update = np.clip(update, -self.maxGradient, self.maxGradient)
