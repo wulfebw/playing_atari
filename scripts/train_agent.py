@@ -15,7 +15,7 @@ import build_agent
 
 ######## training parameters #########
 LEARNING_ALGORITHM = build_agent.build_sarsa_lambda_agent()
-NUM_EPISODES = 5000
+NUM_EPISODES = 3300
 EXPLORATION_REDUCTION_AMOUNT = .0005
 MINIMUM_EXPLORATION_EPSILON = .1
 NUM_FRAMES_TO_SKIP = 4
