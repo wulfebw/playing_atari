@@ -231,9 +231,11 @@ class QLearningReplayMemoryAlgorithm(ValueLearningAlgorithm):
         if self.iterations % self.num_static_target_update_steps == 0:
             self.update_static_target_function()
         stepSize = self.stepSize
-	self.getStaticQ(newState, self.actions[0])
+
+        self.getStaticQ(newState, self.actions[0])
         sars_tuple = (state, action, reward, newState)
         self.replay_memory.store(sars_tuple)
+        
         num_samples = self.sample_size if self.replay_memory.isFull() else 1
         for i in range(0, num_samples):
             state, action, reward, newState = self.replay_memory.sample()
