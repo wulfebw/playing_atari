@@ -9,23 +9,23 @@ from eligibility_traces import EligibilityTraces
 from replay_memory import ReplayMemory
 
 MAX_FEATURE_WEIGHT_VALUE = 1000
- 
+
 class RLAlgorithm(object):
     """
     :description: abstract class defining the interface of a RL algorithm
     """
 
-    def getAction(self, state): 
+    def getAction(self, state):
         raise NotImplementedError("Override me")
 
-    def incorporateFeedback(self, state, action, reward, newState): 
+    def incorporateFeedback(self, state, action, reward, newState):
         raise NotImplementedError("Override me")
 
 class ValueLearningAlgorithm(RLAlgorithm):
     """
     :description: base class for RL algorithms that approximate the value function.
     """
-    def __init__(self, actions, discount, featureExtractor, 
+    def __init__(self, actions, discount, featureExtractor,
                 explorationProb, stepSize, maxGradient,
                 num_consecutive_random_actions):
         """
@@ -35,7 +35,7 @@ class ValueLearningAlgorithm(RLAlgorithm):
         :type discount: float
         :param discount: the discount factor
 
-        :type featureExtractor: callable returning dictionary 
+        :type featureExtractor: callable returning dictionary
         :param featureExtractor: returns the features extracted from a state
 
         :type explorationProb: float
@@ -70,7 +70,7 @@ class ValueLearningAlgorithm(RLAlgorithm):
         :type state: dictionary
         :param state: the state of the game
 
-        :type action: int 
+        :type action: int
         :param action: the action for which to retrieve the Q-value
         """
         score = 0
@@ -91,7 +91,7 @@ class ValueLearningAlgorithm(RLAlgorithm):
             self.cur_random_action_streak -= 1
             return self.cur_random_action
 
-        if random.random() < self.explorationProb: 
+        if random.random() < self.explorationProb:
             self.current_random_action_streak = self.num_consecutive_random_actions
             self.cur_random_action = random.choice(self.actions)
             return self.cur_random_action
@@ -105,30 +105,30 @@ class ValueLearningAlgorithm(RLAlgorithm):
         """
         return self.stepSize
 
-    def incorporateFeedback(self, state, action, reward, newState): 
+    def incorporateFeedback(self, state, action, reward, newState):
         raise NotImplementedError("Override me")
 
 class QLearningAlgorithm(ValueLearningAlgorithm):
     """
     :description: Class implementing the Q-learning algorithm
     """
-    def __init__(self, actions, discount, featureExtractor, 
-                explorationProb, stepSize, maxGradient, 
+    def __init__(self, actions, discount, featureExtractor,
+                explorationProb, stepSize, maxGradient,
                 num_consecutive_random_actions):
         """
         :note: please see parent class for params not described here
         """
-        super(QLearningAlgorithm, self).__init__(actions, discount, featureExtractor, 
+        super(QLearningAlgorithm, self).__init__(actions, discount, featureExtractor,
                     explorationProb, stepSize, maxGradient, num_consecutive_random_actions)
 
     def incorporateFeedback(self, state, action, reward, newState):
         """
-        :description: performs a Q-learning update 
+        :description: performs a Q-learning update
 
         :type state: dictionary
         :param state: the state of the game
 
-        :type action: int 
+        :type action: int
         :param action: the action for which to retrieve the Q-value
 
         :type reward: float
@@ -141,7 +141,7 @@ class QLearningAlgorithm(ValueLearningAlgorithm):
         :param rval: if rval returned, then this is the next action taken
         """
         stepSize = self.stepSize
-        prediction = self.getQ(state, action)        
+        prediction = self.getQ(state, action)
         target = reward
         if newState != None:
             target += self.discount * max(self.getQ(newState, newAction) for newAction in self.actions)
@@ -160,14 +160,14 @@ class QLearningReplayMemoryAlgorithm(ValueLearningAlgorithm):
                 replay memory, which randomly samples from past experiences
                 in order to make updates to the model parameters.
     """
-    def __init__(self, actions, discount, featureExtractor, 
+    def __init__(self, actions, discount, featureExtractor,
                 explorationProb, stepSize, replay_memory_size,
-                replay_memory_sample_size, num_static_target_update_steps, 
+                replay_memory_sample_size, num_static_target_update_steps,
                 maxGradient, num_consecutive_random_actions):
         """
         :note: please see parent class for params not described here
         """
-        super(QLearningReplayMemoryAlgorithm, self).__init__(actions, discount, featureExtractor, 
+        super(QLearningReplayMemoryAlgorithm, self).__init__(actions, discount, featureExtractor,
                     explorationProb, stepSize, maxGradient, num_consecutive_random_actions)
 
         self.replay_memory = ReplayMemory(replay_memory_size)
@@ -178,15 +178,15 @@ class QLearningReplayMemoryAlgorithm(ValueLearningAlgorithm):
 
     def getStaticQ(self, state, action):
         """
-        :description: returns the Q value associated with this state-action pair, as 
-            derived from the static target weights. This could be achieved through 
+        :description: returns the Q value associated with this state-action pair, as
+            derived from the static target weights. This could be achieved through
             the getQ function with a flag, but again trying to be clear about what we are
             doing.
 
         :type state: dictionary
         :param state: the state of the game
 
-        :type action: int 
+        :type action: int
         :param action: the action for which to retrieve the Q-value
         """
         score = 0
@@ -198,7 +198,7 @@ class QLearningReplayMemoryAlgorithm(ValueLearningAlgorithm):
         """
         :description: this updates the static target weights to the current weights.
             This is a separate function so as to be clear what we are accomplishing
-            by setting the static_target_weights. 
+            by setting the static_target_weights.
 
             We use static target weights in order to prevent the algorithm from
             diverging when a single, large update is made to the weights which leads
@@ -208,12 +208,12 @@ class QLearningReplayMemoryAlgorithm(ValueLearningAlgorithm):
 
     def incorporateFeedback(self, state, action, reward, newState):
         """
-        :description: performs a Q-learning update 
+        :description: performs a Q-learning update
 
         :type state: dictionary
         :param state: the state of the game
 
-        :type action: int 
+        :type action: int
         :param action: the action for which to retrieve the Q-value
 
         :type reward: float
@@ -239,7 +239,7 @@ class QLearningReplayMemoryAlgorithm(ValueLearningAlgorithm):
         num_samples = self.sample_size if self.replay_memory.isFull() else 1
         for i in range(0, num_samples):
             state, action, reward, newState = self.replay_memory.sample()
-            prediction = self.getQ(state, action)        
+            prediction = self.getQ(state, action)
             target = reward
             if newState != None:
                 # this is the line that implements the static target, but using the static weights
@@ -258,22 +258,22 @@ class SARSALearningAlgorithm(ValueLearningAlgorithm):
     """
     :description: Class implementing the SARSA algorithm
     """
-    def __init__(self, actions, discount, featureExtractor, 
+    def __init__(self, actions, discount, featureExtractor,
                 explorationProb, stepSize, maxGradient, num_consecutive_random_actions):
         """
         :note: please see parent class for params not described here
         """
-        super(SARSALearningAlgorithm, self).__init__(actions, discount, featureExtractor, 
+        super(SARSALearningAlgorithm, self).__init__(actions, discount, featureExtractor,
                     explorationProb, stepSize, maxGradient, num_consecutive_random_actions)
 
     def incorporateFeedback(self, state, action, reward, newState):
         """
-        :description: performs a SARSA update 
+        :description: performs a SARSA update
 
         :type state: dictionary
         :param state: the state of the game
 
-        :type action: int 
+        :type action: int
         :param action: the action for which to retrieve the Q-value
 
         :type reward: float
@@ -286,7 +286,7 @@ class SARSALearningAlgorithm(ValueLearningAlgorithm):
         :param rval: if rval returned, then this is the next action taken
         """
         stepSize = self.stepSize
-        prediction = self.getQ(state, action)        
+        prediction = self.getQ(state, action)
         target = reward
         newAction = None
         if newState != None:
@@ -307,31 +307,31 @@ class SARSALearningAlgorithm(ValueLearningAlgorithm):
 
 class SARSALambdaLearningAlgorithm(ValueLearningAlgorithm):
     """
-    :description: Class implementing the SARSA Lambda algorithm. This 
+    :description: Class implementing the SARSA Lambda algorithm. This
         class is equivalent to the SARSALearningAlgorithm class when
         self.lambda is set to 0; however, we keep it separate here
         because it imposes an overhead of tracking eligibility
         traces and because it is nice to see the difference between
         the two clearly.
     """
-    def __init__(self, actions, discount, featureExtractor, 
+    def __init__(self, actions, discount, featureExtractor,
                 explorationProb, stepSize, threshold, decay, maxGradient,
                 num_consecutive_random_actions):
         """
         :note: please see parent class for params not described here
         """
-        super(SARSALambdaLearningAlgorithm, self).__init__(actions, discount, featureExtractor, 
+        super(SARSALambdaLearningAlgorithm, self).__init__(actions, discount, featureExtractor,
                     explorationProb, stepSize, maxGradient, num_consecutive_random_actions)
         self.eligibility_traces = EligibilityTraces(threshold, decay)
 
     def incorporateFeedback(self, state, action, reward, newState):
         """
-        :description: performs a SARSA update 
+        :description: performs a SARSA update
 
         :type state: dictionary
         :param state: the state of the game
 
-        :type action: int 
+        :type action: int
         :param action: the action for which to retrieve the Q-value
 
         :type reward: float
@@ -345,9 +345,12 @@ class SARSALambdaLearningAlgorithm(ValueLearningAlgorithm):
         """
         stepSize = self.stepSize
         prediction = self.getQ(state, action)
-        self.eligibility_traces.update_all()        
+        self.eligibility_traces.update_all()
         target = reward
         newAction = None
+        for f, v in self.featureExtractor(state, action):
+            ### v might actually be 1 ###
+            self.eligibility_traces[f] += v
         if newState != None:
             # SARSA differs from Q-learning in that it does not take the max
             # over actions, but instead selects the action using it's policy
@@ -359,9 +362,7 @@ class SARSALambdaLearningAlgorithm(ValueLearningAlgorithm):
         update = stepSize * (prediction - target)
         update = np.clip(update, -self.maxGradient, self.maxGradient)
 
-        for f, v in self.featureExtractor(state, action):
-            ### v might actually be 1 ###
-            self.eligibility_traces[f] += v
+
 
         for f, e in self.eligibility_traces.iteritems():
             #print 'update * e: {} applied to {}, e: {}, update: {}'.format(-1 * update * e, f, e, update)
@@ -369,4 +370,3 @@ class SARSALambdaLearningAlgorithm(ValueLearningAlgorithm):
             assert(self.weights[f] < MAX_FEATURE_WEIGHT_VALUE)
         # return newAction to denote that this is an on-policy algorithm
         return newAction
-

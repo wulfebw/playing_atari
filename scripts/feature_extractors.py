@@ -545,7 +545,7 @@ class NNetOpenCVBoundingBoxExtractor(object):
 
 class TrackingClassifyingContourExtractor(object):
 
-    def __init__(self, max_features=3000, debug=False):
+    def __init__(self, max_features=3000, debug=False,nnet = False):
 
         #used for subimg storing for debugging
         self.iter = 0
@@ -559,8 +559,8 @@ class TrackingClassifyingContourExtractor(object):
 
         #Storage of old features for consistent matching
         self.storedFeatures = []
-        self.maxStoreSize = 200
-
+        self.maxStoreSize = 0
+        self.nnet = nnet
         #Ensure you store the previous features
         self.prevFeatures = []
 
@@ -579,10 +579,16 @@ class TrackingClassifyingContourExtractor(object):
 
         #Need to store the previous position and objectId of each feature with a given label
         self.oldFeatureStates = {}
-
+        self.lastFinal = []
+        self.lastState = {}
 
     def __call__(self, state, action):
         screen = state["screen"]
+        # self.lastScreen = screen
+        if state is self.lastState:
+            return self.makeVector(self.lastFinal,action).iteritems()
+        self.lastState = state
+        start_time = time.time()
         if screen.shape[0] == 32:
             return []
         feats,positions = self.getCurrentFeatures(screen)  #extract raw features about contours from screen
@@ -600,8 +606,12 @@ class TrackingClassifyingContourExtractor(object):
 
         #Get output features by tracking vs previous frame
         finalFeatures = self.trackFeatures(labels,positions)
+        self.lastFinal = finalFeatures
+        if self.nnet:
+            return self.createVector(finalFeatures)
         out = self.makeVector(finalFeatures,action)
-        # print labels
+        #print time.time() - start_time
+        #print labels
         # print out
         return out.iteritems()
 
@@ -682,7 +692,7 @@ class TrackingClassifyingContourExtractor(object):
 
         #detect contours from modified image
         try:
-            contours, _ = cv2.findContours(closed,cv2.RETR_TREE,cv2.CHAIN_APPROX_SIMPLE)      
+            contours, _ = cv2.findContours(closed,cv2.RETR_TREE,cv2.CHAIN_APPROX_SIMPLE)
         except:
             contours = cv2.findContours(closed,cv2.RETR_TREE,cv2.CHAIN_APPROX_SIMPLE)[1]
         feats = []
