@@ -156,8 +156,8 @@ def build_sarsa_lambda_agent(actions):
                 maxGradient=MAX_GRADIENT)
 
 ## Qlearning replay memory parameters ##
-REPLAY_MEMORY_SIZE = 10000
-REPLAY_MEMORY_SAMPLE_SIZE = 3
+REPLAY_MEMORY_SIZE = 100000
+REPLAY_MEMORY_SAMPLE_SIZE = 1
 NUM_STATIC_TARGET_UPDATE_STEPS = 2500
 NUM_CONSECUTIVE_RANDOM_ACTIONS = 0 # 0 denotes only taking a random action once
 ########################################

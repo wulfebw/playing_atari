@@ -43,5 +43,4 @@ class ReplayMemory:
 		if self.capacity > self.last_index + 1 - self.first_index:
 			return self.memory[self.last_index] # dont sample randomly until replay is full
 		rand_sample_index = random.randint(self.first_index, self.last_index)
-		#print "num in memory: " + str(len(self.memory)) + " rand index: " + str(rand_sample_index)
 		return self.memory[rand_sample_index]
