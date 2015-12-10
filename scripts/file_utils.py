@@ -21,11 +21,12 @@ def load_weights(filename):
     filepath = os.path.join('weights', filename)
     weights = {}
     try:
-        with open(input_filename, 'rb') as f:
+        with open(filepath, 'rb') as f:
             weights = pickle.load(f)
     except IOError as e:
-        print("weight file {} not found, reinitializing weights".format(input_filename))
-    return {}
+        print("!!!weight file {} not found, reinitializing weights!!!".format(filepath))
+        raise(e)
+    return weights
 
 def save_model(model, model_filename):
     f = file(model_filename, 'wb')
@@ -41,10 +42,10 @@ def load_model(model_filename):
     f.close()
     return model
 
-def save_rewards(rewards, output_filename='latest'):
+def save_rewards(rewards, filename):
     output_filepath = "rewards/{}".format(output_filename)
     np.savez(output_filepath, rewards=rewards)
 
-def load_rewards(input_filename='latest.npz'):
+def load_rewards(filename):
     input_filepath = "rewards/{}".format(input_filename)
     return np.load(input_filepath)['rewards']

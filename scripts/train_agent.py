@@ -14,7 +14,7 @@ import screen_utils
 import build_agent
 
 ######## training parameters #########
-LEARNING_ALGORITHM = build_agent.build_sarsa_lambda_agent()
+LEARNING_ALGORITHM = build_agent.build_q_learning_replay_memory_agent()
 NUM_EPISODES = 10000
 EXPLORATION_REDUCTION_AMOUNT = .0005
 MINIMUM_EXPLORATION_EPSILON = .05
@@ -22,7 +22,7 @@ NUM_FRAMES_TO_SKIP = 4
 ######################################
 
 ########## training options ##########
-DISPLAY_SCREEN = False
+DISPLAY_SCREEN = True
 PRINT_TRAINING_INFO_PERIOD = 1
 NUM_EPISODES_AVERAGE_REWARD_OVER = 100
 RECORD_WEIGHTS = False
@@ -68,6 +68,7 @@ def train_agent(gamepath, agent, n_episodes, display_screen, record_weights,
 
     rewards = []
     best_reward = 0
+    print('starting training...')
     for episode in xrange(n_episodes):
         action = 0  
         reward = 0
@@ -132,7 +133,7 @@ def train_agent(gamepath, agent, n_episodes, display_screen, record_weights,
             print '############################\n'
             
         if episode != 0 and episode % RECORD_WEIGHTS_PERIOD == 0 and record_weights:
-            file_utils.save_rewards(rewards)
+            file_utils.save_rewards(rewards, filename='episode-{}-{}-rewards'.format(episode, type(agent).__name__))
             file_utils.save_weights(agent.weights, filename='episode-{}-{}-weights'.format(episode, type(agent).__name__))
 
         if agent.explorationProb > MINIMUM_EXPLORATION_EPSILON:

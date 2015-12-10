@@ -24,22 +24,31 @@ import learning_agents
 from replay_memory import ReplayMemory
 from mlp import MLP, HiddenLayer, OutputLayer
 
-# the input size of the network
-MAX_FEATURES = 8
+######## training parameters #########
+NUM_EPISODES = 10000
+NNET_INPUT_DIMENSION = 8
+EXPLORATION_REDUCTION_AMOUNT = .0005
+MINIMUM_EXPLORATION_EPSILON = .05
+NUM_FRAMES_TO_SKIP = 4
+EXPLORATION_PROBABILITY = 1
+DISCOUNT = .99
+LEARNING_RATE = 0.004
+FROZEN_TARGET_UPDATE_PERIOD = 5
+USE_REPLAY_MEMORY = True
+######################################
 
-def train(gamepath, 
-          n_episodes=10000, 
-          display_screen=False, 
-          record_weights=True, 
-          reduce_exploration_prob_amount=0.00001,
-          n_frames_to_skip=4,
-          exploration_prob=.3,
-          verbose=True,
-          discount=.995,
-          learning_rate=.01,
-          load_weights=False,
-          frozen_target_update_period=5,
-          use_replay_mem=True):
+########## training options ##########
+LOAD_WEIGHTS = False
+DISPLAY_SCREEN = False
+PRINT_TRAINING_INFO_PERIOD = 1
+NUM_EPISODES_AVERAGE_REWARD_OVER = 100
+RECORD_WEIGHTS = False
+RECORD_WEIGHTS_PERIOD = 25
+VERBOSE = True
+######################################
+
+
+def train(gamepath, n_episodes,  display_screen,  record_weights,  reduce_exploration_prob_amount, n_frames_to_skip, exploration_prob, verbose, discount, learning_rate, load_weights, frozen_target_update_period, use_replay_mem):
     """
     :description: trains an agent to play a game 
 
@@ -110,9 +119,9 @@ def train(gamepath,
         # defining the hidden layer network structure
         # the n_hid of a prior layer must equal the n_vis of a subsequent layer
         # for q-learning the output layer must be of len(actions)
-        hidden_layer_1 = HiddenLayer(n_vis=MAX_FEATURES, n_hid=MAX_FEATURES, layer_name='hidden1', activation='relu')
-        hidden_layer_2 = HiddenLayer(n_vis=MAX_FEATURES, n_hid=MAX_FEATURES, layer_name='hidden2', activation='relu')
-   	hidden_layer_3 = HiddenLayer(n_vis=MAX_FEATURES, n_hid=len(actions), layer_name='hidden3', activation='relu') 
+        hidden_layer_1 = HiddenLayer(n_vis=NNET_INPUT_DIMENSION, n_hid=NNET_INPUT_DIMENSION, layer_name='hidden1', activation='relu')
+        hidden_layer_2 = HiddenLayer(n_vis=NNET_INPUT_DIMENSION, n_hid=NNET_INPUT_DIMENSION, layer_name='hidden2', activation='relu')
+   	hidden_layer_3 = HiddenLayer(n_vis=NNET_INPUT_DIMENSION, n_hid=len(actions), layer_name='hidden3', activation='relu') 
     # the output layer is currently necessary when using tanh units in the
     # hidden layer in order to prevent a theano warning
     # currently the relu unit setting of the hidden and output layers is leaky w/ alpha=0.01
