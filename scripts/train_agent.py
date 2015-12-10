@@ -15,17 +15,17 @@ import build_agent
 
 ######## training parameters #########
 LEARNING_ALGORITHM = build_agent.build_q_learning_replay_memory_agent()
-NUM_EPISODES = 10000
-EXPLORATION_REDUCTION_AMOUNT = .0001
-MINIMUM_EXPLORATION_EPSILON = .05
+NUM_EPISODES = 5000
+EXPLORATION_REDUCTION_AMOUNT = .0005
+MINIMUM_EXPLORATION_EPSILON = .1
 NUM_FRAMES_TO_SKIP = 4
 ######################################
 
 ########## training options ##########
-DISPLAY_SCREEN = True
-PRINT_TRAINING_INFO_PERIOD = 1
+DISPLAY_SCREEN = False
+PRINT_TRAINING_INFO_PERIOD = 10
 NUM_EPISODES_AVERAGE_REWARD_OVER = 100
-RECORD_WEIGHTS = False
+RECORD_WEIGHTS = True
 RECORD_WEIGHTS_PERIOD = 25
 ######################################
 

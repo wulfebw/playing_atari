@@ -8,10 +8,10 @@ import learning_agents
 
 ###  parameters common to all agents ###
 ACTIONS = [0,1,3,4]
-DISCOUNT = .99
+DISCOUNT = .993
 EXPLORATION_PROBABILITY = 1
-STEP_SIZE = .0005
-MAX_GRADIENT = 10
+STEP_SIZE = .001
+MAX_GRADIENT = 5
 NUM_CONSECUTIVE_RANDOM_ACTIONS = 0 # 0 denotes only taking a random action once
 FEATURE_EXTRACTOR = feature_extractors.OpenCVBoundingBoxExtractor()
 ########################################
