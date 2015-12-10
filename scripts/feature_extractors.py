@@ -273,10 +273,12 @@ def round_to(value, base):
 
 class OpenCVBoundingBoxExtractor(object):
 
-    def __init__(self, threshold=10):
+    def __init__(self, threshold=15):
         self.iter = 0
         self.found_centers = []
         self.threshold = threshold
+        self.ARC_THRESHOLD = 12
+        self.MAX_OBJECTS = 2
 
     """ is this center inside any previous box? """
     def found_already(self, x, y, w, h):
@@ -294,7 +296,7 @@ class OpenCVBoundingBoxExtractor(object):
         edges = cv2.Canny(imgray, 20, 100)
         ret, thresh = cv2.threshold(edges, 127, 255, 0)
         contours, hierarchy = cv2.findContours(thresh,cv2.RETR_TREE,cv2.CHAIN_APPROX_SIMPLE)
-        contours = [cont for cont in contours if cv2.arcLength(cont, True) > 10]
+        contours = [cont for cont in contours if cv2.arcLength(cont, True) > self.ARC_THRESHOLD]
 
         approx = []
         for cnt in contours:
@@ -309,7 +311,7 @@ class OpenCVBoundingBoxExtractor(object):
                 boxes.append(((x,w),(y,h)))
         #     cv2.rectangle(img, (x,y), (x+w, y+h), (0,255,0))
         # cv2.imshow('img_w_boxes', img)
-        return boxes
+        return boxes[:self.MAX_OBJECTS]
 
     def __call__(self, state, action):
         screen = state["screen"]

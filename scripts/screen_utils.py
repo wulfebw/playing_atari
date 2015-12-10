@@ -3,13 +3,13 @@ import random
 from scipy.misc import imresize
 import cv2
 
-class ScreenPreprocessor:
+class ScreenPreprocessor(object):
     """
     :description: class for preprocessing screens. It's a class b/c needs to maintain
                     state from previous screens.
     """
 
-    def preprocess():
+    def preprocess(self):
         raise NotImplementedError("Override me")
 
 class GrayscaleScreenPreprocessor(ScreenPreprocessor):
@@ -29,7 +29,7 @@ class GrayscaleScreenPreprocessor(ScreenPreprocessor):
         # currently this just takes the section of the screen with the ball and the block
         height, width, channels = screen.shape
         screen = screen.reshape(screen.shape[0], screen.shape[1])
-        screen = screen[height*.5:, width*.05: width*.95]
+        screen = screen[:height*.5, width*.05: width*.95]
         if False:
             cv2.imshow('screen', screen)
             cv2.waitKey(1)
@@ -67,7 +67,7 @@ class RGBScreenPreprocessor(ScreenPreprocessor):
         # currently this just takes the section of the screen with the ball and the block
         height, width, channels = screen.shape
         #screen = screen.reshape(screen.shape[0], screen.shape[1], )
-        screen = screen[:, :int(width*.95), :]
+        screen = screen[int(height*.5):, int(width*.05):int(width*.95), :]
         if False:
             cv2.imshow('screen', screen)
             #x = raw_input()
