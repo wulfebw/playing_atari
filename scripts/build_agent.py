@@ -10,7 +10,7 @@ import learning_agents
 ACTIONS = [0,1,3,4]
 DISCOUNT = .99
 EXPLORATION_PROBABILITY = 1
-STEP_SIZE = .005
+STEP_SIZE = .001
 MAX_GRADIENT = 10
 NUM_CONSECUTIVE_RANDOM_ACTIONS = 0 # 0 denotes only taking a random action once
 FEATURE_EXTRACTOR = feature_extractors.OpenCVBoundingBoxExtractor()
@@ -36,8 +36,8 @@ def build_sarsa_agent():
 ########################################
 
 ######## sarsa lambda parameters #######
-THRESHOLD = .01
-DECAY = .5
+THRESHOLD = .1
+DECAY = .98
 ########################################
 def build_sarsa_lambda_agent():
     print 'building sarsa lambda agent...'

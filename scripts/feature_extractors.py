@@ -349,7 +349,7 @@ class OpenCVBoundingBoxExtractor(object):
         features = []
         prev_action_name = 'prev-action-{}'.format(state["prev_action"])
         action_name = 'action-{}'.format(action)
-        bucket_size = 5
+        bucket_size = 3
         pos_names = []
         # base position feature
         for idx, (cx, cy) in enumerate(centers):
@@ -378,7 +378,7 @@ class OpenCVBoundingBoxExtractor(object):
             features.append(((name_x, action_name), 1))
 
             # cross with current locations
-            diff_bucket_size = 5
+            diff_bucket_size = 4
             for idx2, (cx, cy) in enumerate(centers):
               cx = cx/bucket_size
               cy = cy/bucket_size
@@ -390,11 +390,12 @@ class OpenCVBoundingBoxExtractor(object):
                           other_x_pos = cx2
                   name_cross_deriv_pos = 'objects-{}-{}-dx0-{}-dy0-{}-x1-{}'.format(idx,idx2,dx,dy,cx)
                   name_cross_deriv_diff = 'objects-{}-{}-dx0-{}-dy0-{}-xdiff-{}'.format(idx,idx2,dx,dy,(cx - other_x_pos)/diff_bucket_size)
-                  name_cross_deriv_pos_diff = 'objects-{}-{}-x0-{}-dx0-{}-dy0-{}-xdiff-{}'.format(idx,idx2,other_x_pos,dx,dy,(cx - other_x_pos)/diff_bucket_size)
+                  name_cross_deriv_y_diff = 'objects-{}-{}-dy0-{}-y0-{}-xdiff-{}'.format(idx, idx2, dy, cy, (cx - other_x_pos)/diff_bucket_size)
+                  #name_cross_deriv_pos_diff = 'objects-{}-{}-x0-{}-dx0-{}-dy0-{}-xdiff-{}'.format(idx,idx2,other_x_pos,dx,dy,(cx - other_x_pos)/diff_bucket_size)
                   features.append(((name_cross_deriv_pos, action_name),1))
                   features.append(((name_cross_deriv_diff, action_name),1))
-                  features.append(((name_cross_deriv_pos_diff, action_name),1))
-                  
+                  #features.append(((name_cross_deriv_pos_diff, action_name),1))
+                  features.append(((name_cross_deriv_y_diff, action_name), 1))
         # differences
         diff_names = []
         for (cx0, cy0), (cx1, cy1) in zip(centers, centers[1:]):
