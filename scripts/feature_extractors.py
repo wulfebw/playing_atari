@@ -610,7 +610,7 @@ class TrackingClassifyingContourExtractor(object):
         if self.nnet:
             return self.createVector(finalFeatures)
         out = self.makeVector(finalFeatures,action)
-        print time.time() - start_time
+        #print time.time() - start_time
         #print labels
         # print out
         return out.iteritems()
