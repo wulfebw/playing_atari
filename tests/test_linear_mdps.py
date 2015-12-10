@@ -154,30 +154,35 @@ def build_sarsa_lambda_agent(actions):
 		threshold=THRESHOLD,
 		decay=DECAY,
                 maxGradient=MAX_GRADIENT)
-########################################
+
 ## Qlearning replay memory parameters ##
-REPLAY_MEMORY_SIZE = 100
-REPLAY_MEMORY_SAMPLE_SIZE = 10
+REPLAY_MEMORY_SIZE = 10000
+REPLAY_MEMORY_SAMPLE_SIZE = 3
+NUM_STATIC_TARGET_UPDATE_STEPS = 2500
+NUM_CONSECUTIVE_RANDOM_ACTIONS = 0 # 0 denotes only taking a random action once
 ########################################
 def build_q_learning_replay_memory_agent(actions):
     print 'building Q-learning agent with replay memory...'
+    featureExtractor = MdpFExtractor
     return learning_agents.QLearningReplayMemoryAlgorithm(
                 actions=actions,
                 discount=DISCOUNT,
-                featureExtractor=MdpFExtractor,
+                featureExtractor=featureExtractor,
                 explorationProb=EXPLORATION_PROBABILITY,
                 stepSize=STEP_SIZE,
-                maxGradient=MAX_GRADIENT,
                 replay_memory_size=REPLAY_MEMORY_SIZE,
-                replay_memory_sample_size=REPLAY_MEMORY_SAMPLE_SIZE)
+                replay_memory_sample_size=REPLAY_MEMORY_SAMPLE_SIZE,
+                num_static_target_update_steps=NUM_STATIC_TARGET_UPDATE_STEPS,
+                maxGradient=MAX_GRADIENT,
+                num_consecutive_random_actions=NUM_CONSECUTIVE_RANDOM_ACTIONS)
 ########################################
 
 def main():
 	mdp = GridSearchMDP(hasMagic = True)
 	actions = mdp.actions(mdp.startState())
-	agent = build_sarsa_lambda_agent(actions)
-	#agent = build_q_learning_replay_memory_agent(actions)
-	with open("sarsa-lambda.out", "w") as rfile:
+	#agent = build_sarsa_lambda_agent(actions)
+	agent = build_q_learning_replay_memory_agent(actions)
+	with open("replay.out", "w") as rfile:
 		simulate(mdp, agent, numTrials=100000, verbose=True, rFile=rfile)
 
 main()
