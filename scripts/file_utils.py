@@ -43,9 +43,9 @@ def load_model(model_filename):
     return model
 
 def save_rewards(rewards, filename):
-    output_filepath = "rewards/{}".format(output_filename)
-    np.savez(output_filepath, rewards=rewards)
+    filepath = "rewards/{}".format(filename)
+    np.savez(filepath, rewards=rewards)
 
 def load_rewards(filename):
-    input_filepath = "rewards/{}".format(input_filename)
-    return np.load(input_filepath)['rewards']
+    filepath = "rewards/{}".format(filename)
+    return np.load(filepath)['rewards']

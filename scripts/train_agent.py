@@ -22,6 +22,8 @@ NUM_FRAMES_TO_SKIP = 4
 ######################################
 
 ########## training options ##########
+LOAD_WEIGHTS = False
+LOAD_WEIGHTS_FILENAME = ''
 DISPLAY_SCREEN = False
 PRINT_TRAINING_INFO_PERIOD = 10
 NUM_EPISODES_AVERAGE_REWARD_OVER = 100
@@ -147,6 +149,8 @@ if __name__ == '__main__':
     game = 'breakout.bin'
     gamepath = os.path.join('roms', game)
     agent = LEARNING_ALGORITHM
+    if LOAD_WEIGHTS:
+        agent.weights = file_utils.load_weights(WEIGHTS_FILENAME)
     rewards = train_agent(gamepath, agent, 
                         n_episodes=NUM_EPISODES, 
                         display_screen=DISPLAY_SCREEN, 

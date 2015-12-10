@@ -40,7 +40,7 @@ USE_REPLAY_MEMORY = True
 ########## training options ##########
 LOAD_WEIGHTS = False
 DISPLAY_SCREEN = False
-PRINT_TRAINING_INFO_PERIOD = 1
+PRINT_TRAINING_INFO_PERIOD = 10
 NUM_EPISODES_AVERAGE_REWARD_OVER = 100
 RECORD_WEIGHTS = False
 RECORD_WEIGHTS_PERIOD = 25
@@ -98,6 +98,7 @@ def train(gamepath, n_episodes,  display_screen,  record_weights,  reduce_explor
         ale.setBool('display_screen', True)
 
     ale.loadROM(gamepath)
+    ale.setInt("frame_skip", n_frames_to_skip)
     # real actions for breakout are [0,1,3,4]
     real_actions = ale.getMinimalActionSet()
 
@@ -119,9 +120,12 @@ def train(gamepath, n_episodes,  display_screen,  record_weights,  reduce_explor
         # defining the hidden layer network structure
         # the n_hid of a prior layer must equal the n_vis of a subsequent layer
         # for q-learning the output layer must be of len(actions)
-        hidden_layer_1 = HiddenLayer(n_vis=NNET_INPUT_DIMENSION, n_hid=NNET_INPUT_DIMENSION, layer_name='hidden1', activation='relu')
-        hidden_layer_2 = HiddenLayer(n_vis=NNET_INPUT_DIMENSION, n_hid=NNET_INPUT_DIMENSION, layer_name='hidden2', activation='relu')
-   	hidden_layer_3 = HiddenLayer(n_vis=NNET_INPUT_DIMENSION, n_hid=len(actions), layer_name='hidden3', activation='relu') 
+        hidden_layer_1 = HiddenLayer(n_vis=NNET_INPUT_DIMENSION, 
+            n_hid=NNET_INPUT_DIMENSION, layer_name='hidden1', activation='relu')
+        hidden_layer_2 = HiddenLayer(n_vis=NNET_INPUT_DIMENSION, 
+            n_hid=NNET_INPUT_DIMENSION, layer_name='hidden2', activation='relu')
+    hidden_layer_3 = HiddenLayer(n_vis=NNET_INPUT_DIMENSION, 
+            n_hid=len(actions), layer_name='hidden3', activation='relu') 
     # the output layer is currently necessary when using tanh units in the
     # hidden layer in order to prevent a theano warning
     # currently the relu unit setting of the hidden and output layers is leaky w/ alpha=0.01
@@ -141,10 +145,10 @@ def train(gamepath, n_episodes,  display_screen,  record_weights,  reduce_explor
     # 3rd argument is the dictionary of parameter updates
     # 4th argument is the compilation mode
     train_model = theano.function(
-                    [theano.Param(features, default=np.zeros(MAX_FEATURES)),
+                    [theano.Param(features, default=np.zeros(NNET_INPUT_DIMENSION)),
                     theano.Param(action, default=0),
                     theano.Param(reward, default=0),
-                    theano.Param(next_features, default=np.zeros(MAX_FEATURES))],
+                    theano.Param(next_features, default=np.zeros(NNET_INPUT_DIMENSION))],
                     outputs=loss,
                     updates=updates,
                     mode='FAST_RUN')
@@ -193,18 +197,6 @@ def train(gamepath, n_episodes,  display_screen,  record_weights,  reduce_explor
         
         # start the actual play through of the game
         while not ale.game_over():
-
-            # we only choose an action every n_frames_to_skip frames for 
-            # efficiency reasons mostly
-            if counter % n_frames_to_skip != 0:
-                counter += 1
-                reward += ale.act(real_actions[action])
-                 #this is commented out because i think it might not be helpful
-                if ale.lives() < lives: 
-                   lives = ale.lives()
-                   reward -= 1
-                continue
-
             counter += 1
 
             # get the current features, which is the representation of the state provided to 
@@ -221,7 +213,6 @@ def train(gamepath, n_episodes,  display_screen,  record_weights,  reduce_explor
                 # layer (i.e., the action that corresponds to the 
                 # maximum q value)
                 action = get_action(features)
-                #T.argmax(mlp.fprop(features)).eval()
 
             # take the action and receive the reward
             reward += ale.act(real_actions[action])
@@ -243,10 +234,10 @@ def train(gamepath, n_episodes,  display_screen,  record_weights,  reduce_explor
             if use_replay_mem:
                 sars_tuple = (features, action, reward, next_features)
                 replay_mem.store(sars_tuple)
-		num_samples = 5 if replay_mem.isFull() else 1
-		for i in range(0, num_samples):
-                	random_train_tuple = replay_mem.sample()
-                	loss += train_model(*random_train_tuple)
+                num_samples = 5 if replay_mem.isFull() else 1
+                for i in range(0, num_samples):
+                    random_train_tuple = replay_mem.sample()
+                    loss += train_model(*random_train_tuple)
 
                 # collect for pca
                 sequence_examples.append(list(sars_tuple[0]) + [sars_tuple[1]] \
@@ -264,12 +255,12 @@ def train(gamepath, n_episodes,  display_screen,  record_weights,  reduce_explor
                 
             # weird counter value to avoid interaction with any other counter
             # loop that might be added, not necessary right now
-            if verbose and counter % 101 == 0:
+            if verbose and counter % PRINT_TRAINING_INFO_PERIOD == 0:
                 print('*' * 15 + ' training information ' + '*' * 15) 
                 print('episode: {}'.format(episode))
                 print('reward: \t{}'.format(reward))
                 print('avg reward: \t{}'.format(np.mean(rewards)))
-                print 'avg reward (last 25): \t{}'.format(np.mean(rewards[-25:]))
+                print 'avg reward (last 25): \t{}'.format(np.mean(rewards[-NUM_EPISODES_AVERAGE_REWARD_OVER:]))
                 print('action: \t{}'.format(real_actions[action]))
                 print('exploration prob: {}'.format(exploration_prob))
                 
@@ -304,22 +295,22 @@ def train(gamepath, n_episodes,  display_screen,  record_weights,  reduce_explor
         # collect stats from this game run    
         losses.append(loss)
         rewards.append(total_reward)
-	print counter
+    
         # if we got a best reward, inform the user 
-        if total_reward > best_reward and record_weights:
+        if total_reward > best_reward:
             best_reward = total_reward
             print("best reward!: {}".format(total_reward))
 
         # record the weights if record_weights=True
         # must record the weights of the indiviual layers
         # only save hidden layers b/c output layer does not have weights
-        if episode != 0 and episode % 20 == 0 and record_weights:
+        if episode != 0 and episode % RECORD_WEIGHTS_PERIOD == 0 and record_weights:
             file_utils.save_rewards(rewards)
             file_utils.save_model(mlp.layers[0], 'weights/hidden0_{}.pkl'.format(episode))
             file_utils.save_model(mlp.layers[1], 'weights/hidden1_{}.pkl'.format(episode))
 
         # reduce exploration policy over time
-        if exploration_prob > .1:
+        if exploration_prob > MINIMUM_EXPLORATION_EPSILON:
             exploration_prob -= reduce_exploration_prob_amount
         
         # inform user of how the episode went and reset the game
@@ -334,15 +325,17 @@ if __name__ == '__main__':
     game = 'breakout.bin'
     gamepath = os.path.join(base_dir, game)
     rewards = train(gamepath, 
-                    n_episodes=10000, 
+                    n_episodes=NUM_EPISODES, 
                     display_screen=False, 
                     record_weights=True, 
-                    reduce_exploration_prob_amount=0.0002,
-                    n_frames_to_skip=4,
-                    exploration_prob=0.8,
+                    reduce_exploration_prob_amount=EXPLORATION_REDUCTION_AMOUNT,
+                    n_frames_to_skip=NUM_FRAMES_TO_SKIP,
+                    exploration_prob=EXPLORATION_PROBABILITY,
                     verbose=True,
-                    discount=0.99,
-                    learning_rate=.0004,
+                    discount=DISCOUNT,
+                    learning_rate=LEARNING_RATE,
                     load_weights=False,
-                    frozen_target_update_period=5,
-                    use_replay_mem=True)
+                    frozen_target_update_period=FROZEN_TARGET_UPDATE_PERIOD,
+                    use_replay_mem=USE_REPLAY_MEMORY)
+
+
