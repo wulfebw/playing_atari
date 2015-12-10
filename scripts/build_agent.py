@@ -12,6 +12,7 @@ DISCOUNT = .99
 EXPLORATION_PROBABILITY = 1
 STEP_SIZE = .001
 MAX_GRADIENT = 10
+NUM_CONSECUTIVE_RANDOM_ACTIONS = 0 # 0 denotes only taking a random action once
 FEATURE_EXTRACTOR = feature_extractors.OpenCVBoundingBoxExtractor()
 ########################################
 
@@ -30,7 +31,8 @@ def build_sarsa_agent():
                 featureExtractor=featureExtractor, 
                 explorationProb=EXPLORATION_PROBABILITY, 
                 stepSize=STEP_SIZE, 
-                maxGradient=MAX_GRADIENT)
+                maxGradient=MAX_GRADIENT, 
+                num_consecutive_random_actions=NUM_CONSECUTIVE_RANDOM_ACTIONS)
 ########################################
 
 ######## sarsa lambda parameters #######
@@ -48,7 +50,8 @@ def build_sarsa_lambda_agent():
                 stepSize=STEP_SIZE, 
                 threshold=THRESHOLD, 
                 decay=DECAY, 
-                maxGradient=MAX_GRADIENT)
+                maxGradient=MAX_GRADIENT,
+                num_consecutive_random_actions=NUM_CONSECUTIVE_RANDOM_ACTIONS)
 ########################################
 
 ########################################
@@ -61,12 +64,14 @@ def build_q_learning_agent():
                 featureExtractor=featureExtractor, 
                 explorationProb=EXPLORATION_PROBABILITY, 
                 stepSize=STEP_SIZE, 
-                maxGradient=MAX_GRADIENT)
+                maxGradient=MAX_GRADIENT,
+                num_consecutive_random_actions=NUM_CONSECUTIVE_RANDOM_ACTIONS)
 ########################################
 
 ## Qlearning replay memory parameters ##
 REPLAY_MEMORY_SIZE = 100
 REPLAY_MEMORY_SAMPLE_SIZE = 10
+NUM_STATIC_TARGET_UPDATE_STEPS = 2500
 ########################################
 def build_q_learning_replay_memory_agent():
     print 'building Q-learning agent with replay memory...'
@@ -77,9 +82,11 @@ def build_q_learning_replay_memory_agent():
                 featureExtractor=featureExtractor, 
                 explorationProb=EXPLORATION_PROBABILITY, 
                 stepSize=STEP_SIZE,  
-                maxGradient=MAX_GRADIENT,
                 replay_memory_size=REPLAY_MEMORY_SIZE, 
-                replay_memory_sample_size=REPLAY_MEMORY_SAMPLE_SIZE)
+                replay_memory_sample_size=REPLAY_MEMORY_SAMPLE_SIZE,
+                num_static_target_update_steps=NUM_STATIC_TARGET_UPDATE_STEPS,
+                maxGradient=MAX_GRADIENT,
+                num_consecutive_random_actions=NUM_CONSECUTIVE_RANDOM_ACTIONS)
 ########################################
 
 def load_agent_weights(agent, weights_filepath):

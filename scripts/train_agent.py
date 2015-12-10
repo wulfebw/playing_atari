@@ -14,7 +14,7 @@ import screen_utils
 import build_agent
 
 ######## training parameters #########
-LEARNING_ALGORITHM = build_agent.build_sarsa_lambda_agent()
+LEARNING_ALGORITHM = build_agent.build_q_learning_replay_memory_agent()
 NUM_EPISODES = 10000
 EXPLORATION_REDUCTION_AMOUNT = .0005
 MINIMUM_EXPLORATION_EPSILON = .05
