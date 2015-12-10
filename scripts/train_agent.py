@@ -14,7 +14,7 @@ import screen_utils
 import build_agent
 
 ######## training parameters #########
-LEARNING_ALGORITHM = build_agent.build_q_learning_replay_memory_agent()
+LEARNING_ALGORITHM = build_agent.build_sarsa_lambda_agent()
 NUM_EPISODES = 10000
 EXPLORATION_REDUCTION_AMOUNT = .0005
 MINIMUM_EXPLORATION_EPSILON = .05
@@ -23,7 +23,7 @@ NUM_FRAMES_TO_SKIP = 4
 
 ########## training options ##########
 DISPLAY_SCREEN = False
-PRINT_TRAINING_INFO_PERIOD = 5
+PRINT_TRAINING_INFO_PERIOD = 1
 NUM_EPISODES_AVERAGE_REWARD_OVER = 100
 RECORD_WEIGHTS = False
 RECORD_WEIGHTS_PERIOD = 25
@@ -64,6 +64,8 @@ def train_agent(gamepath, agent, n_episodes, display_screen, record_weights,
     ale.loadROM(gamepath)
     ale.setInt("frame_skip", n_frames_to_skip)
 
+    screen_preprocessor = screen_utils.RGBScreenPreprocessor()
+
     rewards = []
     best_reward = 0
     for episode in xrange(n_episodes):
@@ -90,12 +92,14 @@ def train_agent(gamepath, agent, n_episodes, display_screen, record_weights,
             else:
                 action = newAction
             reward += ale.act(action)
+
             if ale.lives() < lives:
               lives = ale.lives()
               reward -= 1
             total_reward += reward
 
             new_screen = ale.getScreenRGB()
+            new_screen = screen_preprocessor.preprocess(new_screen)
             new_state = {"screen": new_screen, 
                         "objects": None, 
                         "prev_objects": state["objects"], 
@@ -120,6 +124,8 @@ def train_agent(gamepath, agent, n_episodes, display_screen, record_weights,
             print("Exploration probability: {}".format(agent.explorationProb))
             print('action: {}'.format(action))
             print('size of weights dict: {}'.format(len(agent.weights)))
+            print('current objects: {}'.format(state['objects']))
+            print('previous objects: {}'.format(state['prev_objects']))
             avg_feat_weight = np.mean([v for k,v in agent.weights.iteritems()])
             print('average feature weight: {}'.format(avg_feat_weight))
             print '############################'
