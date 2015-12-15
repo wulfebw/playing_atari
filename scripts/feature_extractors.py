@@ -19,6 +19,7 @@ from sklearn.cluster import DBSCAN
 from sklearn.preprocessing import StandardScaler
 import hashlib
 import struct
+import pickle
 
 class CoordinateExtractor(object):
 
@@ -581,12 +582,14 @@ class TrackingClassifyingContourExtractor(object):
         self.oldFeatureStates = {}
         self.lastFinal = []
         self.lastState = {}
+        self.count = 0
 
     def __call__(self, state, action):
         screen = state["screen"]
         # self.lastScreen = screen
         if state is self.lastState:
             return self.makeVector(self.lastFinal,action).iteritems()
+        self.count +=1
         self.lastState = state
         start_time = time.time()
         if screen.shape[0] == 32:
@@ -607,6 +610,10 @@ class TrackingClassifyingContourExtractor(object):
         #Get output features by tracking vs previous frame
         finalFeatures = self.trackFeatures(labels,positions)
         self.lastFinal = finalFeatures
+        if self.count%100 ==0:
+            output = open('features/features.pkl'.format(self.count), 'wb')
+            pickle.dump(self.featureExamples, output)
+            output.close()
         if self.nnet:
             return self.createVector(finalFeatures)
         out = self.makeVector(finalFeatures,action)
