@@ -22,7 +22,7 @@ import screen_utils
 import feature_extractors
 import learning_agents
 from replay_memory import ReplayMemory
-from mlp import MLP, HiddenLayer, OutputLayer
+from qnetwork import QNetwork, HiddenLayer, OutputLayer
 
 ######## training parameters #########
 NUM_EPISODES = 10000
@@ -133,11 +133,11 @@ def train(gamepath, n_episodes,  display_screen,  record_weights,  reduce_explor
 
     # pass a list of layers to the constructor of the network (here called "mlp")
     layers = [hidden_layer_1, hidden_layer_2, hidden_layer_3, output_layer]
-    mlp = MLP(layers, discount=discount, learning_rate=learning_rate)
+    qnetwork = QNetwork(layers, discount=discount, learning_rate=learning_rate)
 
     # this call gets the symbolic output of the network
     # along with the parameter updates expected
-    loss, updates = mlp.get_loss_and_updates(features, action, reward, next_features)
+    loss, updates = qnetwork.get_loss_and_updates(features, action, reward, next_features)
 
     # this defines the theano symbolic function used to train the network
     # 1st argument is a list of inputs, here the symbolic variables above
@@ -153,7 +153,7 @@ def train(gamepath, n_episodes,  display_screen,  record_weights,  reduce_explor
                     updates=updates,
                     mode='FAST_RUN')
 
-    sym_action = mlp.get_action(features)
+    sym_action = qnetwork.get_action(features)
     get_action = theano.function([features], sym_action)
 
     # some containers for collecting information about the training processes 
@@ -175,7 +175,7 @@ def train(gamepath, n_episodes,  display_screen,  record_weights,  reduce_explor
         # this implements the frozen target component of the network
         # by setting the frozen layers of the network to a copy of the current layers
         if episode % frozen_target_update_period == 0:
-            mlp.frozen_layers = copy.deepcopy(mlp.layers)
+            qnetwork.frozen_layers = copy.deepcopy(qnetwork.layers)
 
 
         # some variables for collecting information about this particular run of the game
@@ -264,7 +264,7 @@ def train(gamepath, n_episodes,  display_screen,  record_weights,  reduce_explor
                 print('action: \t{}'.format(real_actions[action]))
                 print('exploration prob: {}'.format(exploration_prob))
                 
-                param_info = [(p.eval(), p.name) for p in mlp.get_params()]
+                param_info = [(p.eval(), p.name) for p in qnetwork.get_params()]
                 for index, (val, name) in enumerate(param_info):
                     if previous_param_0 is None and index == 0:
                         previous_param_0 = val
@@ -306,8 +306,8 @@ def train(gamepath, n_episodes,  display_screen,  record_weights,  reduce_explor
         # only save hidden layers b/c output layer does not have weights
         if episode != 0 and episode % RECORD_WEIGHTS_PERIOD == 0 and record_weights:
             file_utils.save_rewards(rewards)
-            file_utils.save_model(mlp.layers[0], 'weights/hidden0_{}.pkl'.format(episode))
-            file_utils.save_model(mlp.layers[1], 'weights/hidden1_{}.pkl'.format(episode))
+            file_utils.save_model(qnetwork.layers[0], 'weights/hidden0_{}.pkl'.format(episode))
+            file_utils.save_model(qnetwork.layers[1], 'weights/hidden1_{}.pkl'.format(episode))
 
         # reduce exploration policy over time
         if exploration_prob > MINIMUM_EXPLORATION_EPSILON:

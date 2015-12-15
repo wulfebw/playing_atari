@@ -23,7 +23,7 @@ def get_relu(alpha):
         return T.maximum(x, alpha * x)
     return relu
 
-class MLP(object):
+class QNetwork(object):
     """
     :description: the MLP class acts as a wrapper around the layers of the network.
     """
