@@ -6,6 +6,7 @@
         https://github.com/spragunr/deep_q_rl
 """
 import sys
+import os
 import copy
 
 import numpy as np
