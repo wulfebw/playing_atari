@@ -22,7 +22,9 @@ class TestQLearner(unittest.TestCase):
 		feature_extractor = feature_extractors.IdentityFeatureExtractor()
 		exploration_prob = 0
 		step_size = 1
-		ql = learning_agents.QLearningAlgorithm(legal_actions, discount, feature_extractor,  exploration_prob, step_size)
+		maxGradient = 1
+		num_consecutive_random_actions = 0
+		ql = learning_agents.QLearningAlgorithm(legal_actions, discount, feature_extractor,  exploration_prob, step_size, maxGradient, num_consecutive_random_actions)
 
 		state = {'test_feature' : 1}
 		new_state = {'test_feature' : 2}
@@ -40,7 +42,9 @@ class TestQLearner(unittest.TestCase):
 		feature_extractor = feature_extractors.IdentityFeatureExtractor()
 		exploration_prob = 0
 		step_size = 1
-		ql = learning_agents.QLearningAlgorithm(legal_actions, discount, feature_extractor,  exploration_prob, step_size)
+		maxGradient = 1
+		num_consecutive_random_actions = 0
+		ql = learning_agents.QLearningAlgorithm(legal_actions, discount, feature_extractor,  exploration_prob, step_size, maxGradient, num_consecutive_random_actions)
 
 		state = {'test_feature' : 1}
 		new_state = {'test_feature' : 2}

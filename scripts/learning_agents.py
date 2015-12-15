@@ -362,8 +362,6 @@ class SARSALambdaLearningAlgorithm(ValueLearningAlgorithm):
         update = stepSize * (prediction - target)
         update = np.clip(update, -self.maxGradient, self.maxGradient)
 
-
-
         for f, e in self.eligibility_traces.iteritems():
             #print 'update * e: {} applied to {}, e: {}, update: {}'.format(-1 * update * e, f, e, update)
             self.weights[f] -= update * e

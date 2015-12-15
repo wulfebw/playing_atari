@@ -22,7 +22,9 @@ class TestSARSALearner(unittest.TestCase):
         feature_extractor = feature_extractors.IdentityFeatureExtractor()
         exploration_prob = 0
         step_size = 1
-        ql = learning_agents.SARSALearningAlgorithm(legal_actions, discount, feature_extractor,  exploration_prob, step_size)
+        maxGradient = 5
+        num_consecutive_random_actions = 0
+        ql = learning_agents.SARSALearningAlgorithm(legal_actions, discount, feature_extractor,  exploration_prob, step_size, maxGradient, num_consecutive_random_actions)
 
         state = {'test_feature' : 1}
         new_state = {'test_feature' : 2}
@@ -40,7 +42,9 @@ class TestSARSALearner(unittest.TestCase):
         feature_extractor = feature_extractors.IdentityFeatureExtractor()
         exploration_prob = 0
         step_size = 1
-        ql = learning_agents.SARSALearningAlgorithm(legal_actions, discount, feature_extractor,  exploration_prob, step_size)
+        maxGradient = 5
+        num_consecutive_random_actions = 0
+        ql = learning_agents.SARSALearningAlgorithm(legal_actions, discount, feature_extractor,  exploration_prob, step_size, maxGradient, num_consecutive_random_actions)
 
         state = {'test_feature' : 1}
         new_state = {'test_feature' : 2}
@@ -67,8 +71,10 @@ class TestSARSALambdaLearner(unittest.TestCase):
         decay = .5
         maxGradient = 10
         threshold = .001
+        maxGradient = 5
+        num_consecutive_random_actions = 0
         ql = learning_agents.SARSALambdaLearningAlgorithm(legal_actions, discount, 
-            feature_extractor, exploration_prob, step_size, threshold, decay, maxGradient)
+            feature_extractor, exploration_prob, step_size, threshold, decay, maxGradient,num_consecutive_random_actions)
 
         state_1 = {'test_feature_1' : 1}
         state_2 = {'test_feature_2' : 1}
@@ -95,8 +101,11 @@ class TestSARSALambdaLearner(unittest.TestCase):
         decay = .2
         maxGradient = 10
         threshold = .001
+        maxGradient = 5
+        num_consecutive_random_actions = 0
         ql = learning_agents.SARSALambdaLearningAlgorithm(legal_actions, discount, 
-            feature_extractor, exploration_prob, step_size, threshold, decay, maxGradient)
+            feature_extractor, exploration_prob, step_size, threshold, decay, maxGradient,
+            num_consecutive_random_actions)
 
         state_1 = {'test_feature_1' : 1}
         state_2 = {'test_feature_2' : 1}
@@ -123,8 +132,11 @@ class TestSARSALambdaLearner(unittest.TestCase):
         decay = .5
         maxGradient = 10
         threshold = 0
+        maxGradient = 5
+        num_consecutive_random_actions = 0
         ql = learning_agents.SARSALambdaLearningAlgorithm(legal_actions, discount, 
-            feature_extractor, exploration_prob, step_size, threshold, decay, maxGradient)
+            feature_extractor, exploration_prob, step_size, threshold, decay, maxGradient,
+            num_consecutive_random_actions)
 
         state_1 = {'test_feature_1' : 1}
         state_2 = {'test_feature_2' : 1}
@@ -148,8 +160,11 @@ class TestSARSALambdaLearner(unittest.TestCase):
         decay = .5
         maxGradient = 10
         threshold = .001
+        maxGradient = 5
+        num_consecutive_random_actions = 0
         ql = learning_agents.SARSALambdaLearningAlgorithm(legal_actions, discount, 
-            feature_extractor, exploration_prob, step_size, threshold, decay, maxGradient)
+            feature_extractor, exploration_prob, step_size, threshold, decay, maxGradient, 
+            num_consecutive_random_actions)
 
         state_1 = {'test_feature_1' : 1}
         # ql.weights['test_feature_2'] = 1
@@ -176,8 +191,11 @@ class TestSARSALambdaLearner(unittest.TestCase):
         decay = .5
         maxGradient = 10
         threshold = .001
+        maxGradient = 5
+        num_consecutive_random_actions = 0
         ql = learning_agents.SARSALambdaLearningAlgorithm(legal_actions, discount, 
-            feature_extractor, exploration_prob, step_size, threshold, decay, maxGradient)
+            feature_extractor, exploration_prob, step_size, threshold, decay, maxGradient, 
+            num_consecutive_random_actions)
 
         state_1 = {'test_feature_1' : 1}
         ql.weights['test_feature_2'] = 1
