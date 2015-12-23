@@ -22,7 +22,8 @@ class NeuralAgent(object):
 
     def __init__(self, q_network, epsilon_start, epsilon_min,
                  epsilon_decay, replay_memory_size, exp_pref,
-                 replay_start_size, update_frequency, rng):
+                 replay_start_size, update_frequency, rng,
+                 s3_utility):
 
         self.network = q_network
         self.epsilon_start = epsilon_start
@@ -33,6 +34,7 @@ class NeuralAgent(object):
         self.replay_start_size = replay_start_size
         self.update_frequency = update_frequency
         self.rng = rng
+        self.s3_utility = s3_utility
 
         self.phi_length = self.network.num_frames
         self.image_width = self.network.input_width
@@ -43,6 +45,8 @@ class NeuralAgent(object):
         self.exp_dir = self.exp_pref + time_str + \
                        "{}".format(self.network.lr).replace(".", "p") + "_" \
                        + "{}".format(self.network.discount).replace(".", "p")
+        self.results_filepath = self.exp_dir + '/results.csv'
+        self.learning_filepath = self.exp_dir + '/learning.csv'
 
         try:
             os.stat(self.exp_dir)
@@ -88,14 +92,12 @@ class NeuralAgent(object):
         self.last_action = None
 
     def _open_results_file(self):
-        logging.info("OPENING " + self.exp_dir + '/results.csv')
-        self.results_file = open(self.exp_dir + '/results.csv', 'w', 0)
-        self.results_file.write(\
-            'epoch,num_episodes,total_reward,reward_per_epoch,mean_q\n')
+        self.results_file = open(self.results_filepath, 'w', 0)
+        self.results_file.write('epoch,num_episodes,total_reward,reward_per_epoch,mean_q\n')
         self.results_file.flush()
 
     def _open_learning_file(self):
-        self.learning_file = open(self.exp_dir + '/learning.csv', 'w', 0)
+        self.learning_file = open(self.learning_filepath, 'w', 0)
         self.learning_file.write('mean_loss,epsilon\n')
         self.learning_file.flush()
 
@@ -105,12 +107,16 @@ class NeuralAgent(object):
                                         holdout_sum)
         self.results_file.write(out)
         self.results_file.flush()
+        if self.s3_utility is not None:
+            self.s3_utility.upload_file('results.csv', self.results_filepath)
 
     def _update_learning_file(self):
         out = "{},{}\n".format(np.mean(self.loss_averages),
                                self.epsilon)
         self.learning_file.write(out)
         self.learning_file.flush()
+        if self.s3_utility is not None:
+            self.s3_utility.upload_file('learning.csv', self.learning_filepath)
 
     def start_episode(self, observation):
         """
@@ -268,12 +274,14 @@ class NeuralAgent(object):
                 logging.info("average loss: {:.4f}".format(\
                                 np.mean(self.loss_averages)))
 
-
     def finish_epoch(self, epoch):
-        net_file = open(self.exp_dir + '/network_file_' + str(epoch) + \
-                        '.pkl', 'w')
+        net_filename = '/network_file_' + str(epoch) + '.pkl'
+        net_filepath = self.exp_dir + net_filename
+        net_file = open(net_filepath, 'w')
         cPickle.dump(self.network, net_file, -1)
         net_file.close()
+        if self.s3_utility is not None:
+            self.s3_utility.upload_file(net_filename, net_filepath)
 
     def start_testing(self):
         self.testing = True

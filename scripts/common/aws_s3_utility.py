@@ -20,9 +20,10 @@ class S3Utility(object):
 
     """
 
-    def __init__(self, access_key, secret_key):
+    def __init__(self, access_key, secret_key, s3_bucket):
         self.access_key = access_key
         self.secret_key = secret_key
+        self.s3_bucket = s3_bucket
         self._conn = None
 
     @property   
@@ -32,14 +33,14 @@ class S3Utility(object):
         else:
             return S3Connection(self.access_key, self.secret_key)
 
-    def download_file_list(self, s3_bucket, prefix=''):
+    def download_file_list(self, prefix=''):
         """
         :description: loads the name of the files in a bucket. 
             Optionally returns only those filenames that start with prefix.
         """
 
         # select the bucket, where input_s3_bucket takes the form 'bsdsdata'
-        bucket = self.conn.get_bucket(s3_bucket)
+        bucket = self.conn.get_bucket(self.s3_bucket)
 
         # collect the list of files to process - those that start with the data group id
         file_list = []
@@ -50,7 +51,7 @@ class S3Utility(object):
 
         return file_list
 
-    def download_file(self, s3_bucket, file_to_load, local_save_dir):
+    def download_file(self, file_to_load, local_save_dir):
         """
         :description: load a file from a given s3 bucket with a 
             given name and save to a local dir
@@ -68,7 +69,7 @@ class S3Utility(object):
         """
 
         # select the bucket, where input_s3_bucket takes the form 'bsdsdata'
-        bucket = self.conn.get_bucket(s3_bucket)
+        bucket = self.conn.get_bucket(self.s3_bucket)
 
         # set a key to the processed files list
         key = Key(bucket, file_to_load)
@@ -84,7 +85,7 @@ class S3Utility(object):
         # return the location of the downloaded file
         return save_location
 
-    def upload_file(self, s3_bucket, filename_to_save_as, file_path):
+    def upload_file(self, filename_to_save_as, file_path):
         """
         :description: uploads a single file to an s3 bucket
 
@@ -97,7 +98,7 @@ class S3Utility(object):
             sys.stdout.flush()
 
         # select the bucket, where input_s3_bucket takes the form 'bsdsdata'
-        bucket = self.conn.get_bucket(s3_bucket)
+        bucket = self.conn.get_bucket(self.s3_bucket)
 
         # send the file to the s3 bucket
         key = Key(bucket)

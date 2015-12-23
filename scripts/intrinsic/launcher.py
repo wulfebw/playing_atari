@@ -16,6 +16,8 @@ import ale_experiment
 import ale_agent
 import q_network
 
+from scripts.common.aws_s3_utility import S3Utility
+
 def process_args(args, defaults, description):
     """
     Handle the command line.
@@ -138,6 +140,9 @@ def process_args(args, defaults, description):
                         type=bool, default=defaults.CUDNN_DETERMINISTIC,
                         help=('Whether to use deterministic backprop. ' +
                               '(default: %(default)s)'))
+    parser.add_argument('--aws_access_key', type=str, default=None)
+    parser.add_argument('--aws_secret_key', type=str, default=None)
+    parser.add_argument('--s3_bucket', type=str, default=None)
 
     parameters = parser.parse_args(args)
     if parameters.experiment_prefix is None:
@@ -161,8 +166,6 @@ def process_args(args, defaults, description):
                                       parameters.update_frequency)
 
     return parameters
-
-
 
 def launch(args, defaults, description):
     """
@@ -228,6 +231,13 @@ def launch(args, defaults, description):
         network = cPickle.load(handle)
 
     print 'building agent...'
+    if parameters.aws_secret_key and parameters.aws_access_key and parameters.s3_bucket:
+      s3_utility = S3Utility(parameters.aws_access_key,
+                             parameters.aws_secret_key,
+                             parameters.s3_bucket)
+    else: 
+      s3_utility = None
+
     agent = ale_agent.NeuralAgent(network,
                                   parameters.epsilon_start,
                                   parameters.epsilon_min,
@@ -236,7 +246,8 @@ def launch(args, defaults, description):
                                   parameters.experiment_prefix,
                                   parameters.replay_start_size,
                                   parameters.update_frequency,
-                                  rng)
+                                  rng,
+                                  s3_utility)
 
     print 'building experiment...'
     experiment = ale_experiment.ALEExperiment(ale, agent,
