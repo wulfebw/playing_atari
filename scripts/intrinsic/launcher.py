@@ -205,6 +205,7 @@ def launch(args, defaults, description):
     num_actions = len(ale.getMinimalActionSet())
 
     if parameters.nn_file is None:
+        print 'building network...'
         network = q_network.DeepQLearner(defaults.RESIZED_WIDTH,
                                          defaults.RESIZED_HEIGHT,
                                          num_actions,
@@ -222,9 +223,11 @@ def launch(args, defaults, description):
                                          parameters.batch_accumulator,
                                          rng)
     else:
+        print 'loading network...'
         handle = open(parameters.nn_file, 'r')
         network = cPickle.load(handle)
 
+    print 'building agent...'
     agent = ale_agent.NeuralAgent(network,
                                   parameters.epsilon_start,
                                   parameters.epsilon_min,
@@ -235,6 +238,7 @@ def launch(args, defaults, description):
                                   parameters.update_frequency,
                                   rng)
 
+    print 'building experiment...'
     experiment = ale_experiment.ALEExperiment(ale, agent,
                                               defaults.RESIZED_WIDTH,
                                               defaults.RESIZED_HEIGHT,
@@ -247,10 +251,8 @@ def launch(args, defaults, description):
                                               parameters.max_start_nullops,
                                               rng)
 
-
+    print 'running experiment...'
     experiment.run()
-
-
 
 if __name__ == '__main__':
     pass

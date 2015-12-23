@@ -77,7 +77,7 @@ class DeepQLearner:
         self.l_out, self.original, self.reconstructed = self.build_network(network_type, 
                         input_width, input_height, num_actions, num_frames, batch_size)
         if self.freeze_interval > 0:
-            self.next_l_out = self.build_network(network_type, input_width,
+            self.next_l_out, _, _ = self.build_network(network_type, input_width,
                                                  input_height, num_actions,
                                                  num_frames, batch_size)
             self.reset_q_hat()
@@ -118,8 +118,11 @@ class DeepQLearner:
                                                     next_states / input_scale)
             next_q_vals = theano.gradient.disconnected_grad(next_q_vals)
 
+        original_vals = lasagne.layers.get_output(self.original, states / input_scale)
+        reconstructed_vals = lasagne.layers.get_output(self.reconstructed, states / input_scale)
         # compression loss
-        compression_loss = T.mean(0.5 * (self.original - self.reconstructed) ** 2)
+        compression_loss = T.mean(0.5 * (original_vals - reconstructed_vals) ** 2)
+
 
         target = (rewards + compression_loss + 
                   (T.ones_like(terminals) - terminals) *
@@ -265,9 +268,7 @@ class DeepQLearner:
         return action
 
     def reset_q_hat(self):
-        l_out_params = lasagne.layers.helper.get_all_param_values(self.l_out)
-        compression_params = lasagne.layers.helper.get_all_param_values(self.reconstructed)
-        all_params = set(l_out_params + compression_params)
+        all_params = lasagne.layers.helper.get_all_param_values(self.l_out)
         lasagne.layers.helper.set_all_param_values(self.next_l_out, all_params)
 
     def build_nature_network(self, input_width, input_height, output_dim,
