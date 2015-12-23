@@ -1,4 +1,5 @@
 ![alt text](https://raw.githubusercontent.com/wulfebw/playing_atari/master/media/breakout.gif "Playing Breakout")  
+![alt text](https://raw.githubusercontent.com/wulfebw/playing_atari/master/media/montezuma_revenge_no_intrinsic.gif "Montezuma's Revenge Without Intrinsic Rewards")  
 
 scripts/build_agent.py: Constructs our different learning agents (q-learning, q-learning w/ replay memory, sarsa, sarsa-lambda)  with various parameters
 
