@@ -7,7 +7,7 @@ import cv2
 import unittest
 import numpy as np
 
-import eligibility_traces
+import linear.eligibility_traces as eligibility_traces
 
 class TestEligibilityTraces(unittest.TestCase):
 
