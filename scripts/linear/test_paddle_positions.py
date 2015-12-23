@@ -1,6 +1,6 @@
 
-import feature_extractors
-import file_utils
+import scripts.common.feature_extractors as feature_extractors
+import scripts.common.file_utils as file_utils
 import matplotlib.pyplot as plt
 
 def test_paddle_positions():

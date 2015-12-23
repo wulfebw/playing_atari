@@ -2,8 +2,8 @@
 :description: training constants and building training agents
 """
 
-import file_utils
-import feature_extractors
+import scripts.common.file_utils
+import scripts.common.feature_extractors as feature_extractors
 import learning_agents
 
 ###  parameters common to all agents ###

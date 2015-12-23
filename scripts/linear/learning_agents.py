@@ -6,7 +6,7 @@ import sys, collections, math, random, copy
 import numpy as np
 
 from eligibility_traces import EligibilityTraces
-from replay_memory import ReplayMemory
+from scripts.common.replay_memory import ReplayMemory
 
 MAX_FEATURE_WEIGHT_VALUE = 1000
 

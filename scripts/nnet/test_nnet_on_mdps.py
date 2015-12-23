@@ -4,7 +4,7 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), os.pardi
 import collections, random
 import theano
 import theano.tensor as T
-from mlp import MLP, HiddenLayer, OutputLayer
+from qnetwork import QNetwork, HiddenLayer, OutputLayer
 
 import numpy as np
 
@@ -108,7 +108,7 @@ def test_nnet_numberline_mdp(n_episodes,  exploration_prob=0.9, learning_rate=.0
     hidden_layer_1 = HiddenLayer(n_vis=n_vis, n_hid=len(actions), layer_name='hidden', activation='tanh')
     output_layer = OutputLayer(layer_name='out', activation='relu')
     layers = [hidden_layer_1, output_layer]
-    mlp = MLP(layers, discount=mdp.discount(), learning_rate=learning_rate)
+    mlp = QNetwork(layers, discount=mdp.discount(), learning_rate=learning_rate)
     loss, updates = mlp.get_loss_and_updates(features, action, reward, next_features)
 
     train_model = theano.function(

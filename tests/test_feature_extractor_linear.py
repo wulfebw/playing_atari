@@ -7,7 +7,7 @@ import cv2
 import unittest
 import numpy as np
 
-import common.feature_extractors as feature_extractors
+import scripts.common.feature_extractors as feature_extractors
 
 DATA_DIR = os.path.join(os.path.dirname(__file__), 'data')
 

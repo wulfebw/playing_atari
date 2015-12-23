@@ -9,8 +9,8 @@ import numpy as np
 from ale_python_interface import ALEInterface
 
 # custom imports
-import file_utils
-import screen_utils
+import scripts.common.file_utils as file_utils
+import scripts.common.screen_utils
 import build_agent
 
 ######## training parameters #########

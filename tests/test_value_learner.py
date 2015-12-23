@@ -6,8 +6,8 @@ import collections
 import unittest
 import numpy as np
 
-import linear.learning_agents as learning_agents
-import common.feature_extractors as feature_extractors
+import scripts.linear.learning_agents as learning_agents
+import scripts.common.feature_extractors as feature_extractors
 
 def get_legal_actions():
     n_actions = 18

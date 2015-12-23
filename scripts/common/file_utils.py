@@ -9,8 +9,6 @@ import datetime
 
 import numpy as np
 
-import mlp
-
 def save_weights(weights, filename):
     output_filepath = "weights/{}.pkl".format(filename)
     with open(output_filepath, 'wb') as f:

@@ -17,11 +17,10 @@ from sklearn.decomposition import PCA
 from ale_python_interface import ALEInterface
 
 # custom imports
-import file_utils
-import screen_utils
-import feature_extractors
-import learning_agents
-from replay_memory import ReplayMemory
+import scripts.common.file_utils as file_utils
+import scripts.common.screen_utils as screen_utils
+import scripts.common.feature_extractors as feature_extractors
+from scripts.common.replay_memory import ReplayMemory
 from qnetwork import QNetwork, HiddenLayer, OutputLayer
 
 ######## training parameters #########
