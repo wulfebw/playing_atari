@@ -1,3 +1,5 @@
+![alt text](https://raw.githubusercontent.com/wulfebw/playing_atari/master/media/breakout.gif "Playing Breakout")  
+
 scripts/build_agent.py: Constructs our different learning agents (q-learning, q-learning w/ replay memory, sarsa, sarsa-lambda)  with various parameters
 
 scripts/feature_extractors.py: Contains all of our different feature extractors (blob/OpenCV)
@@ -11,7 +13,6 @@ scripts/eligibility_traces.py: Implements eligibility trace for sarsa-lambda age
 scripts/replay_memory.py: Contains replay memory code and logic
 
 scripts/file_utils.py and scripts/screen_utils.py: Contains various screen processing and file loading/saving methods invoked by our code
-
 
 These files were other utilities that we used for our analysis:
 
