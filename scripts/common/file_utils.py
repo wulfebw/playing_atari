@@ -9,14 +9,18 @@ import datetime
 
 import numpy as np
 
+WEIGHTS_DIR = "../weights"
+REWARDS_DIR = "../rewards"
+MODELS_DIR = "../models"
+
 def save_weights(weights, filename):
-    output_filepath = "weights/{}.pkl".format(filename)
+    output_filepath = os.path.join(WEIGHTS_DIR, "{}.pkl".format(filename))
     with open(output_filepath, 'wb') as f:
         pickle.dump(weights, f)
 
 def load_weights(filename):
     print "loading weights..."
-    filepath = os.path.join('weights', filename)
+    filepath = os.path.join(WEIGHTS_DIR, filename)
     weights = {}
     try:
         with open(filepath, 'rb') as f:
@@ -27,7 +31,7 @@ def load_weights(filename):
     return weights
 
 def save_model(model, model_filename):
-    f = file(model_filename, 'wb')
+    f = file(os.path.join(MODELS_DIR, model_filename), 'wb')
     try:
         cPickle.dump(model, f, protocol=cPickle.HIGHEST_PROTOCOL)
     except:
@@ -35,15 +39,15 @@ def save_model(model, model_filename):
     f.close()
 
 def load_model(model_filename):
-    f = file(model_filename, 'rb')
+    f = file(os.path.join(MODELS_DIR, model_filename), 'rb')
     model = cPickle.load(f)
     f.close()
     return model
 
 def save_rewards(rewards, filename):
-    filepath = "rewards/{}".format(filename)
+    filepath = os.path.join(REWARDS_DIR, "{}".format(filename))
     np.savez(filepath, rewards=rewards)
 
 def load_rewards(filename):
-    filepath = "rewards/{}".format(filename)
+    filepath = os.path.join(REWARDS_DIR, "{}".format(filename))
     return np.load(filepath)['rewards']
