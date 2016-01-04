@@ -1,18 +1,3 @@
-"""
-Code for deep Q-learning as described in:
-
-Playing Atari with Deep Reinforcement Learning
-NIPS Deep Learning Workshop 2013
-
-and
-
-Human-level control through deep reinforcement learning.
-Nature, 518(7540):529-533, February 2015
-
-
-Author of Lasagne port: Nissan Pow
-Modifications: Nathan Sprague
-"""
 import lasagne
 import numpy as np
 import theano
