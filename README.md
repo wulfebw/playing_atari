@@ -13,9 +13,12 @@ Questions + Conclusions
 2. <b>Question:</b> How important is experience replay to the DQN success and how do the hyperparameters of the replay memory impact performance? 
 
    <b>Conclusion:</b> The experience replay makes a tremendous difference and so do the replay hyperparameters (we evaluated on smaller MDPs, but believe these results apply in the case of Atari games as well). Figure 1 shows the performance of the different replay memories keeping the number of trials constant and figure 2 shows performance of different replay memories keeping the number of updates constant (here updates are really what matters). From these results we concluded that larger capacity replay memories perform much better (likely because the samples taken from these memories are not as highly correlated with each other) and that larger updates per trial also perform better.
-   
-![alt tag](https://github.com/wulfebw/playing_atari/media/const_trials.png)
-![alt tag](https://github.com/wulfebw/playing_atari/media/const_updates.png)
+
+Figure 1: Constant number of trials, green is the largest capacity/update replay memory and blue is no memory
+![alt text](https://raw.githubusercontent.com/wulfebw/playing_atari/master/media/const_trials.png)
+
+Figure 2: Constant number of updates, green is the largest capacity/update replay memory and blue is no memory
+![alt text](https://raw.githubusercontent.com/wulfebw/playing_atari/master/media/const_updates.png)
   
 3. <b>Question:</b> How important is it to use a stationary target function for the Q-learning updates?
 
@@ -25,48 +28,50 @@ Results
 -------
 We developed Sarsa(lambda) and Q-learning models with both linear and neural network function approximators. Using the object-based features, Sarsa(lambda) with linear function approximation achieved the highest performance both on Breakout and on the games in the test group. It is interesting to visualize what the model learned by plotting the maximum Q-value achievable depending upon the location of the ball in breakout (figure 3).
 
-![alt tag](https://github.com/wulfebw/playing_atari/media/heatmap.png)
+Figure 3: Optimal Q value in the game Breakout, dark red indicates high Q value and dark blue represents low Q value
+![alt tag](https://raw.githubusercontent.com/wulfebw/playing_atari/master/media/heatmap.png)
 
 What's next?
 ------------
 
 Clearly it's possible to play breakout well (we used an existing theano implementation of the DQN to train this model [2]):
-![alt text](https://raw.githubusercontent.com/wulfebw/playing_atari/master/media/breakout.gif "Playing Breakout")  
+![alt tag](https://raw.githubusercontent.com/wulfebw/playing_atari/master/media/breakout.gif "Playing Breakout")  
 
 More difficult is learning to play somewhat complex games like Montezuma's Revenge:
-![alt text](https://raw.githubusercontent.com/wulfebw/playing_atari/master/media/montezuma_revenge_no_intrinsic.gif "Montezuma's Revenge Without Intrinsic Rewards")  
+![alt tag](https://raw.githubusercontent.com/wulfebw/playing_atari/master/media/montezuma_revenge_no_intrinsic.gif "Montezuma's Revenge Without Intrinsic Rewards")  
 
 <b> The next goal is to develop an agent that can play Montezuma's Revenge and other games of similar difficulty. </b>
 
 How to do that?
 ---------------
 
-Among the challenges to playing these types of games is that the rewards are sparse. For example, it is highly unlikely that the explorer in Montezuma's Revenge will manage to reach the key through random actions (he would have to climb up/down 3 ladders and jump over the skeleton before receiving any sort of reward signal). We're going to try to overcome this challenge using intrinsic rewards [3]. Specifically, we're going to try to implement some form of artificial curiosity [4] as well as some form of empowerment [5]. Curiosity basically motivates an agent to explore the state space. Empowerment basically motivates an agent to maximize its influence over the environment.
+Among the challenges to playing these types of games is that the rewards are sparse. For example, it is highly unlikely that the explorer in Montezuma's Revenge will manage to reach the key through random actions (he would have to climb up/down 3 ladders and jump over the skeleton before receiving any sort of reward signal). We're going to try to overcome this challenge using intrinsic rewards [3]. Specifically, we're going to implement some form of artificial curiosity [4] as well as some form of empowerment [5]. Curiosity basically motivates an agent to explore the state space. Empowerment basically motivates an agent to maximize its influence over the environment.
 
 References
 ----------
-[0] Deepmine Nips paper: 
-[1] Deepmind Nature Paper: 
+[0] Deepmine Nips paper: https://www.cs.toronto.edu/~vmnih/docs/dqn.pdf
+
+[1] Deepmind Nature Paper: http://www.nature.com/nature/journal/v518/n7540/full/nature14236.html
+
 [2] DQN thenao implementation: https://github.com/spragunr/deep_q_rl
+
 [3] Intrinsic motivation Paper: http://papers.nips.cc/paper/2552-intrinsically-motivated-reinforcement-learning.pdf
+
 [4] Curiosity: http://people.idsia.ch/~juergen/interest.html
+
 [5] Empowerment: http://arxiv.org/pdf/1310.1863v2.pdf
 
 Other Resources
 ---------------
 
 [6] Our report: http://cs229.stanford.edu/proj2015/366_report.pdf 
+
 [7] Arcade learning environment (ALE) paper: http://arxiv.org/pdf/1207.4708v2.pdf
+
 [8] ALE website: http://www.arcadelearningenvironment.org/
+
 [9] Basic background paper on playing Atari games: http://arxiv.org/pdf/1410.8620v1.pdf
+
 [10] Recent empowerment research: http://arxiv.org/pdf/1509.08731v1.pdf
 
 
-
-scripts/random_baselines.py: used to generate random baseline scores
-
-tests/test_linear_mdps.py: used to test our various agents on simpler MDPs
-
-tests/plot_rewards.py: used to plot rewards resulting from the above
-
-tests/test-hm.py: used to generate Q-value heat maps and best action maps
